@@ -1,0 +1,19 @@
+name: Discord Notifications
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify Discord
+        uses: PingChunChung/actions-discord-notifier@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          status: ${{ job.status }}
+          title: "GitHub Repository Update"
+          description: "A new GitHub event occurred."
