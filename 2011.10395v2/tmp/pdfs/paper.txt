@@ -1,0 +1,1488 @@
+=== PAGE 1 ===
+                   Solving nonlinear diﬀerential equations with diﬀerentiable quantum circuits
+
+                                   Oleksandr Kyriienko,1, 2 Annie E. Paine,1, 2 and Vincent E. Elfving2
+                            1Department of Physics and Astronomy, University of Exeter, Stocker Road, Exeter EX4 4QL, UK
+                                  2Qu & Co B.V., PO Box 75872, 1070 AW, Amsterdam, The Netherlands
+                                                                   (Dated: May 20, 2021)
+
+                  We propose a quantum algorithm to solve systems of nonlinear diﬀerential equations. Using a quantum
+                            feature map encoding, we deﬁne functions as expectation values of parametrized quantum circuits. We use
+                         automatic diﬀerentiation to represent function derivatives in an analytical form as diﬀerentiable quantum circuits
+                      (DQCs), thus avoiding inaccurate ﬁnite diﬀerence procedures for calculating gradients. We describe a hybrid
+                          quantum-classical workﬂow where DQCs are trained to satisfy diﬀerential equations and speciﬁed boundary
+                           conditions. As a particular example setting, we show how this approach can implement a spectral method for
+                          solving diﬀerential equations in a high-dimensional feature space. From a technical perspective, we design
+                         a Chebyshev quantum feature map that oﬀers a powerful basis set of ﬁtting polynomials and possesses rich
+                             expressivity. We simulate the algorithm to solve an instance of Navier-Stokes equations, and compute density,
+                         temperature and velocity proﬁles for the ﬂuid ﬂow in a convergent-divergent nozzle.2021
+
+
+                                           I.  INTRODUCTION                        ﬁnite diﬀerencing scheme (Euler’s method). Several studiesMay                                                             have developed generic quantum solvers for linear diﬀeren-
+                                                                                                tial equations, and have shown algorithmic improvements in
+             Diﬀerential equations are ubiquitous in various ﬁelds of sci-                                                                     terms of accessed quantum oracles [25–33]. For the global18         ence [1]. Their applications range from predicting motion in                                                                     numerical diﬀerentiation methods a spectral solver was pro-
+         mechanics and ﬂuid dynamics [2], to describing reactions in                                                                  posed in [34]. The power of HHL-based algorithms relies
+          chemistry, ecosystem balance in ecology, market dynamics                                                             on amplitude encoding, where a function is represented as a
+           in ﬁnance, and disease spreading in epidemiology. In many                     P2N
+                                                             quantum state |u⟩=   k=1 uk|k⟩encoded in complex uk am-          cases ﬁnding solutions to nonlinear systems of diﬀerential
+                                                                              plitudes of computational basis states |k⟩for N qubits. This
+          equations (DEs) is challenging, and requires advanced numer-
+                                                                       allows for compressing large grids into a small qubit register,
+            ical techniques [3, 4]. The diﬃculties arise in DEs for many
+                                                                       providing exponential memory advantage. However, there are
+          functions and variables (known as ‘the curse of dimensional-
+                                                                             several caveats that should be considered [9]. First, the pro-[quant-ph]     ity’), models with high degree of nonlinearity, optimal control
+                                                                  posed quantum algorithms solve an equivalent quantum task
+          problems, as well as stiﬀand numerically unstable systems                                                                          of ﬁnding a state |u⟩= ˆA−1|b⟩given the matrix ˆA acting on
+            [5, 6]. Classical numerical methods for solving DEs can be
+                                                                   pre-deﬁned (boundary) state |b⟩.  Reading out the function
+          divided into local and global methods. Local approaches rely
+                                                                         values from the quantum state |u⟩in general requires expo-
+         on discretization of the space of variables, with derivatives
+                                                                               nential sampling, representing a so-called data ‘output prob-
+          being approximated with numerical diﬀerentiation techniques
+                                                                          lem’. Second, the preparation of a generic input state |b⟩re-
+           (ﬁnite diﬀerencing and Runge-Kutta methods). Often a ﬁne
+                                                                           quires sophisticated techniques such as quantum random ac-
+           grid for multivariable functions is required to represent a so-
+                                                                          cess memory (QRAM) [35], thus leading to a so-called data
+           lution qualitatively and quantitatively [3], leading to increas-
+                                                                             ‘input problem’. Finally, translating quantum oracles that en-
+          ing computational cost. Global methods represent the solution                                                                 code DEs (matrix ˆA) can introduce huge computational over-
+           in terms of a suitable basis set [4]. This recasts the problem
+                                                                         heads, making simulation infeasible even for a fault-tolerant
+           to ﬁnding optimal coeﬃcients for the polynomial approxima-
+                                                             quantum computer [36].
+           tion (e.g. Fourier or Chebyshev) of the sought function. Find-
+          ing spectral solutions for complex problems may require ever-
+                                                            Modern quantum processors are not perfect, and hardware
+           increasing basis sets to achieve high accuracy, enlarging the
+                                                                              available today correspond to noisy intermediate scale quan-
+          global diﬀerential operator, and introduces diﬃculties whenarXiv:2011.10395v2                                                      tum (NISQ) devices [37]. They operate for a limited circuit
+          dealing deterministically with boundary conditions.
+                                                                           depth, but still enjoy a Hilbert space that increases exponen-
+          Quantum computers oﬀer a fundamentally diﬀerent ap-     tially with the number of qubits. Recently, such a setup was
+          proach to perform computation, and possess algorithmically   shown to provide advantage over classical methods for a tai-
+           superior scaling for certain problems that include amplitude    lored problem [38].  However, ﬁnding NISQ protocols that
+          ampliﬁcation and Abelian hidden subgroup problems [7, 8].    can oﬀer advantage for industrially relevant tasks represents
+         For prototypical linear algebra tasks, quantum computers can    an open challenge. One promising direction corresponds to
+         be used as exponential accelerators for solving linear sys-    simulation of material science and chemistry, where hybrid
+         tem of equations (LSE), as oﬀered by the HHL algorithm    quantum-classical approaches are developed for preparing
+           [9] and other quantum LSE approaches with improved scal-    ground states of correlated molecules [39–41]. The paradig-
+          ing [10–14]. These developments, among others, have led to    matic hybrid algorithm corresponds to the variational quan-
+           the nascent ﬁeld of quantum machine learning [15–24]. Quan-   tum eigensolver (VQE) [42, 43], where a quantum computer
+        tum LSE solvers can be applied to linear diﬀerential equations     is used to prepare parametrized quantum states and measure
+            that are rewritten as systems of algebraic equations using a     their energy, while classical optimization is used for ﬁnding
+=== PAGE 2 ===
+                                                                                                     2
+
+
+the best variational parameters. This strategy enables quan-   was also considered as a quantum-inspired and quantum ap-
+tum calculations with relatively noisy devices, and allows for    proach to provide speedup for certain problems [151].
+numerous advances from the experimental [44–52] and theo-    We propose to solve nonlinear diﬀerential equations (DEs)
+retical [53–66] perspectives.                                    of a general form in a radically diﬀerent way, where we
+  The rise of VQE has launched further development of varia-    construct solutions using diﬀerentiable quantum circuits (or
+tional quantum algorithms (VQAs) [67–71], targeting generic     equivalently, derivative quantum circuits) that we refer to as
+data analysis and machine learning tasks.  Performed by   ‘DQCs’ in the following [152]. These can be viewed as quan-
+parametrized quantum circuits, also dubbed as quantum neu-   tum neural network circuits that are designed to deal with
+ral networks (QNNs) [67], VQAs rapidly expand applications    functions and their derivatives using automatic diﬀerentiation
+to include classiﬁcation [72–78], regression [73], generative     rules. The overview of our approach is outlined in Fig. 1.  It
+modelling [79–87], clustering [88, 89], reinforcement learn-     relies on deﬁning the DQC structure, choosing the optimiza-
+ing [90–95], quantum simulation [96–99], quantum metrol-     tion strategy, and training of the circuit parameters that allows
+ogy [100–102] and other tasks. The power of VQAs for ma-     for reproducing the solution function. The required elements
+chine learning (ML) tasks comes from the high expressibility    and workﬂow are detailed in the next section.
+of quantum circuits, where data points are mapped to quantum     Our approach targets near-term quantum devices, where hy-
+states. Also, a large role for designing eﬃcient algorithms is    brid quantum-classical computing can work with noisy oper-
+played by automatic diﬀerentiation and natural gradient tech-     ation and reasonably shallow circuit depth. We alleviate the
+niques [73, 103–111], developing deep networks and new    data input problem, as we do not rely on amplitude encod-
+QNN architectures [112–115], as well as proposing opera-     ing, but use a latent space representation deﬁned in the high-
+tionally meaningful cost functions for optimization [70, 116],    dimensional Hilbert space. This brings advantage in ﬁnding
+and optimal ansatz search [117–122]. First experiments show    solutions of diﬀerential equations, as we use the large ex-
+promising results for systems of small and increasing size    pressive power of quantum feature maps and parametrized
+[74, 123, 124]. Various strategies of error mitigation were pro-    quantum circuits. For eﬃcient readout, we project the high-
+posed that can further improve the performance of algorithms    dimensional function representation to its scalar values by
+when run on physical devices [125–132]. Finally, considering    measuring the expectation of an observable (cost operator),
+linear algebra problems, several VQAs were also proposed to    and separate evaluation of quantum circuits, oﬀering a NISQ-
+solve LSEs [133–138], and ongoing eﬀorts are directed to-     friendly implementation. We note that our approach also can
+wards improving their workﬂow. To date, several small scale    work with quantum kernels [153], an advantageous choice for
+linear equation solvers have been implemented using a nuclear    the loss function that allows for eﬃcient multipoint training.
+magnetic resonance-based setup [139, 140].                   However, this approach is more suitable for future highly-
+  As for nonlinear diﬀerential equation solvers, available    coherent quantum devices, and will be considered in forth-
+quantum protocols remain scarce and the ﬁeld is only starting    coming studies.
+to grow. An intriguing approach was proposed in Ref. [141],
+where nonlinearity is introduced using quantum nonlinear
+processing units realized by ancillary quantum registers and       II.  DQC-BASED DIFFERENTIAL EQUATIONS SOLVER:
+controlled-multiqubit operations. The approach uses ampli-               GENERAL OVERVIEW
+tude encoding, oﬀering memory saving while potentially fac-
+ing the data input and output problems.  Another hybrid    We start with an overview description of the diﬀerential
+quantum-classical approach is presented in Ref. [142], where    equation solver based on derivative circuits. To solve DEs, we
+computational ﬂuid dynamics applications are considered.    prepare trial solutions of the diﬀerential equation(s) as quan-
+This relies heavily on classical computation, with the quan-   tum circuits parametrized by a variable x ∈R (or a collec-
+tum processor being delegated to perform function averaging     tion of v variables, x ∈Rv). As the discussion is generalized
+(using amplitude estimation as subroutine). Using an oracle-    straightforwardly to the case of v variables, for brevity we
+based approach, amplitude-encoded states, and two quantum    henceforth use the simpliﬁed single variable notation x. We
+Fourier transforms, the discussed algorithm remains an option    use a quantum feature map circuit ˆUϕ(x) to encode the pre-
+more suitable for future fault-tolerant devices.                deﬁned nonlinear function of variables ϕ(x) to amplitudes of
+  In the classical computational methods, the advanced meth-    the quantum state ˆUϕ(x)|Ø⟩prepared from some initial state
+ods for solving diﬀerential equations are also currently de-     |Ø⟩. A quantum feature map represents a latent space encod-
+veloped based on machine learning techniques.  The solu-    ing that, unlike amplitude encoding, does not require access
+tions are encoded by deep neural networks as universal func-     to each amplitude and is controlled by classical gate parame-
+tion approximators [143], advancing on the original steps with     ters, mapping real parameter x to the corresponding variable
+shallow artiﬁcial neural networks [144]. The approach relies     value. Sometimes this is also called a quantum embedding
+on training physically-informed neural networks [145, 146],    [154, 155], referring to the way data is embedded in the cir-
+Fourier neural operators [147] or universal diﬀerential equa-     cuit. This follows the steps of quantum circuit learning (QCL)
+tion networks [148].  Recently, it has become a part of sci-     [73], shown to work well for solving problems of regression
+entiﬁc machine learning ecosystem [149]. Another intriguing    and classiﬁcation. Next, we add a variational quantum circuit
+direction of contemporary research in diﬀerential calculus is    ˆUθ parametrized by a vector of variational parameters θ that
+representation of solutions using tensor networks [150]. This    can be adjusted in a quantum-classical optimization loop. The
+=== PAGE 3 ===
+                                                                                                     3
+
+
+                              _input_:       differential equations        du1 /dx = ó1 u2 + ó2 u1
+                                                                 du2 /dx = 3ó2 u2 3 ó1 u1
+                                         boundary conditions          u1(0) = u1,0 ,  u2(0) = u2,0
+
+               _initialize_DQC_struct_:      choose feature map Uφ
+                                               product map            Chebyshev tower map
+                                        Chebyshev map          evolution-enhanced map
+
+                   choose varational      choose cost function        choose loss function     choose boundary
+                     ansatz U¢                                                                     handling
+                                                    qubit magnetization       MSE
+                     hardware  efficient        total magnetization       MAE                    pinned
+                          alternating blocks       t-Ising Hamiltonian          Kullback-Leibner           floating
+                                       many-body Hamiltonian     Jensen–Shannon         optimized
+
+                  _optimize_DQC_:       set grid x O {xi}i=1M             set  exit condition         set angles ¢
+                                                                               set regularization
+                                                 for  nj = 1:n iter :
+                                                     for  xi in x  :
+                                                    evaluate function  circuits         evaluate derivative  circuits
+
+
+                                                                                        ...                  ...
+                                                      ...
+
+
+
+                                                                        (x)                      d /dx|x in x
+
+                                                    evaluate loss function derivative
+
+                                                                                   if NOT (exit condition):
+                                                    update angles ¢ using classical optimizer
+
+                                                           else:  evaluate function and plot solution
+
+
+
+
+FIG. 1: DQC optimization workﬂow. The problem is set as a system of diﬀerential equations for functions u, variables x, and speciﬁed
+boundary conditions. The derivative quantum circuit is constructed by choosing the encoding circuit and optimization schedule. The solution
+is optimized by evaluating the function and derivative circuits at the deﬁned grid of points X (which may be multidimensional), and using these
+values to calculate the loss function derivative. The variational angles are updated in the hybrid quantum-classical loop until a speciﬁed exit
+condition is reached.
+
+
+resulting state | fϕ,θ(x)⟩= ˆUθ ˆUϕ(x)|Ø⟩for optimal angles con-   sum of expectations [Fig. 2(b)]
+tains the x-dependent amplitudes sculptured to represent the
+sought function. Finally, the real valued function can be read            d f(x)/dx =1 X ⟨f dϕ,                                                                                        +  j,θ(x)| ˆC|f dϕ,+ j,θ(x)⟩        (2)
+out as an expectation value of a predeﬁned Hermitian cost op-                      2     j
+erator ˆC, such that the trial function that aims to approximate                             −         −
+                                                                 −⟨fdϕ,j,θ(x)|ˆC| fdϕ,j,θ(x)⟩ ,the solution u(x) reads [Fig. 2(a)]
+                                                           with |f dϕ,± j,θ(x)⟩deﬁned through the parameter shifting, and in-
+                   f(x) = ⟨fϕ,θ(x)|ˆC| fϕ,θ(x)⟩.                (1)    dex j running through the individual quantum operations used
+                                                                    in the feature map encoding. Applying the parameter shift rule
+                                                        once again we can get the second-order derivative d2 f(x)/dx2
+                                                           with four shifted terms for each generator [104, 156]. Impor-
+  One crucial step of our algorithm is the diﬀerentiation of     tantly, as described we use the automatic diﬀerentiation (AD)
+the quantum feature map circuit, d ˆUϕ(x)/dx = P j ˆUdϕ, j(x),    technique to perform quantum circuit diﬀerentiation. AD al-
+where the action diﬀerential can be represented as a sum of    lows the function derivative to be represented by the exact an-
+modiﬁed circuits ˆUdϕ,j. This allows function derivatives to be     alytical formula using a set of simple computational rules, as
+represented using the product derivative rule. In the case of    opposed to numerical diﬀerentiation. Since automatic diﬀer-
+quantum feature map generated by strings of Pauli matrices     entiation provides an analytical derivative of the circuit at any
+or any involutory matrix we can use the parameter shift rule    value of variable x, our scheme does not take on the accu-
+[73, 103] such that the function derivative is expressed as a    mulated error from approximating the derivatives.  Notably,
+=== PAGE 4 ===
+                                                                                                     4
+
+
+(a)                                                                     (b)
+
+| 0
+                                                                                               ......                  1                             3
+| 0                                                                                               ......                                | 0    Uφ,1(xi)   U¢                             | 0       Uφ,1(xi)   U¢
+| 0
+                                                                                               ......                                                              ......                                             ...                                              ......                                             ...
+| 0    Uφ(xi)        U¢
+                        ......                            ......   ......             ......   ......   ......           ......              ...
+| 0                                                             1                             3
+                                                                                               ......                                | 0    Uφ,2(xi)   U¢                             | 0       Uφ,2(xi)   U¢
+| 0
+                                                                                                                                                                                                                           ......                                             ...                                              ......                                             ...
+     quantum feature          variational quantum   measure  (xi)                                                                                                                                                                      ...                                                                                                                                                                                                                                                     ...                     ...   measure                                                                                              derivative quantum circuits      map circuit                      circuit       = Σ ℓ Ü ℓC ℓ (xi)
+                                                                                                       d /dx|x=xi
+
+
+FIG. 2: Diﬀerentiable quantum circuits. (a) Quantum circuit used for encoding the value of a function at a speciﬁc value of the variable
+x = xi. The circuit consists of a feature map ˆUϕ that encodes the x-dependence, followed by variational ansatz ˆUθ, and an observable-based
+readout for the set of operators ˆCℓ. The measurement result is classically post-processed to provide a quantum function representation f(x)
+as a sum of expectations, where coeﬃcients αℓcan be optimized in a quantum-classical hybrid loop. To compose the loss function circuit
+measurements for diﬀerent points of optimization grid X are required. (b) Derivative of the sought function f(x) evaluated at speciﬁc point
+x = xi is estimated as a sum of expectations for derivative quantum circuits. The full structure follows from the feature map diﬀerentiation
+described in the text and shown for example in Fig. 3.
+
+
+
+typical schemes for quantum ODE solvers involve numeri-    avoid the data readout problem, as the solution is encoded in
+cal diﬀerentiation using Euler’s method and ﬁnite diﬀerence    the observable of an operator, such that expectation can be
+schemes that suﬀer from approximation errors, and often re-    routinely calculated. For the latter point, it diﬀers from ampli-
+quire a ﬁne discretization grid. This problem is alleviated in    tude encoding |u⟩in HHL and related methods, where getting
+our approach.                                                   the full solution from amplitudes is exponentially costly and
+  Our goal is to construct and deﬁne the conditions for the    requires tomographic measurements. Finally, we note that our
+quantum circuit to represent the solution of diﬀerential equa-    goal is to construct circuits that can work for quantum pro-
+tions, generally written as                                       cessors with limited computational power, meaning the gate
+                                                           depth (number of operations to performed in series) is limited
+            F[{dm fn/dxm}m,n, { fn(x)}n, x] = 0,           (3)     to a certain amount. This largely deﬁnes the training proce-
+                                                                 dure, where we rely on the classical optimization loop. Once
+where the functional F[·] is provided by the problem for    deep circuits can be implemented, we can also exploit par-
+function derivatives of diﬀerent order m and function/variable     allel training strategies for the quantum circuit and quantum
+polynomials of varying degree n. For simplicity we refer to f     state encoding, coming closer to the ideal quantum operation
+as a function, and show that the same analysis holds for a vec-    regime.
+tor of functions. The condition above demands that derivatives
+and nonlinear functions give a net zero contribution. Thus, we
+can rewrite the task as an optimization problem and use the
+                                                                                                               III. METHODS
+loss function Lθ[dx f, f, x]. This corresponds to minimization
+of F[x]|x→xi at points in the set X = {xi}Mi=1, and additionally
+ensuring that the boundary conditions are satisﬁed. Once the     Below we discuss the set of tools that are required to
+optimal angles                                                  build a diﬀerentiable circuit as a solution of diﬀerential equa-
+                                                                        tions. This corresponds to the main ingredients of the circuit
+                   θopt = argmin (Lθ[dx f, f, x])              (4)    with Sec. III A describing quantum feature maps and their
+                                θ                                         derivatives; Sec. III B variational quantum circuits (ansatze);
+                                                              Sec. III C cost functions; and Sec. III D loss functions for the
+are found, we can reproduce the solution from Eq. (1) as a
+                                                               optimization loop.  Additionally we detail proposed bound-
+function f(x)|θ→θopt ≈u(x).                                                              ary handling techniques in Sec. III E, possible strategies for
+  Summarizing the high level description of the proposed ap-
+                                                                   regularization in Sec. III F, encoding multiple functions in
+proach we note that we: 1) use quantum feature map encod-
+                                                              Sec. III G, and summarize a complete optimization schedule
+ing, thus overcoming the complexity of amplitude encoding
+                                                                    in Sec. III H.
+for preparing the solution at the boundary; 2) perform auto-
+matic diﬀerentiation of the quantum feature map circuit, al-
+lowing us to represent function derivatives without the im-
+precision error characteristic to numerical diﬀerentiation (ﬁ-           A.  Quantum feature maps and their derivatives
+nite diﬀerencing); 3) search for the suitable solution in the
+exponential space of ﬁtting polynomials, thus resembling the    A quantum feature map is a unitary circuit ˆUϕ(x) that
+spectral and ﬁnite element methods with improved scaling; 4)     is parametrized by the variable x and typically nonlinear
+=== PAGE 5 ===
+                                                                                                     5
+
+
+(a)                          (b)                                                                                     (c)
+         Ry(φ[x])                  Ry(φ[x]±°/2)                                                                          Ry(φ[x])
+
+
+             | 0    Ry(x)                                       | 0    Ry(x)             Ry(x)             Ry(x)              Ry(x)                                            | 0    Ry(x)
+
+             | 0    Ry(x)                                       | 0    Ry(x)             Ry(x)             Ry(x)              Ry(x)                                            | 0    Ry(x)
+                           +        +         +                                     e3iH•
+             | 0    Ry(x)                                       | 0    Ry(x)             Ry(x)             Ry(x)              Ry(x)                                            | 0    Ry(x)
+
+             | 0    Ry(x)                                       | 0    Ry(x)             Ry(x)             Ry(x)              Ry(x)                                            | 0    Ry(x)
+                  ...                                    ...                     ...                     ...                      ...                                       ...
+    quantum feature                 variate  measure                                                                generalized feature
+      map circuit                                          derivative quantum circuits                           map circuit
+
+
+FIG. 3: Product feature map and its derivative. (a) Quantum feature map of a product type, where single qubit rotations (here chosen as
+ˆRy) act at each qubit individually and are parametrized by a function of variable x. Speciﬁcally, the expectation value of the circuit is shown,
+with thin pink and green blocks depicting the variational ansatz and the cost function measurement respectively. For the nonlinear feature
+encoding the nonlinear function ϕ(x) is used as an angle of rotation. The product feature map can be further generalized to several layers,
+and diﬀerent functions {ϕ}. Several feature maps can be concatenated to represent a multivariable function. (b) shows the derivative quantum
+circuit for the product feature map. Diﬀerentiation over variable x follows the chain rule, with the expectation value of the derivative written
+as a sum of separate expectations with shifted phases, repeated for each x-dependent rotation. (c) Generalized product feature map, which we
+refer to as evolution-enhanced feature map, where the layer of rotation is followed by the unitary evolution generated by Hamiltonian ˆH. For
+complicated multiqubit Hamiltonians the encoded state comprises of exponentially many unique x-dependent amplitudes. Time interval τ can
+be set variationally, or annealed from zero to ﬁnite value during the optimization procedure.
+
+
+function ϕ(x).  Acting on the state  it maps x to ˆUϕ(x)|Ø⟩     is then rewritten as
+such that the x-dependence is translated into quantum state                         N                     !
+                     O             xamplitudes [67].  This is also referred to as a latent space                  ˆUϕ(x) =    exp −iarcsin   ˆYj  ,           (6)
+                                                                                    2mapping. There exist diﬀerent ways of feature map encoding.                                   j=1
+Below we describe some possible choices and propose a
+                                                               leading to amplitudes that depend on the encoded variables as
+distinct Chebyshev quantum feature map that allows the ap-
+                                                                  cos[(arcsin x)/2] and sin[(arcsin x)/2]. Acting on the initial
+proximation of highly nonlinear functions. We also describe
+                                                                        state |Ø⟩this feature map encodes the variable as an N-th de-
+the procedure of feature map diﬀerentiation, the crucial step                      √
+                                                             gree polynomial formed by {1, x,  1 −x2} and their productsof constructing quantum circuits for solutions of diﬀerential
+                                                                     [73]. The redundancy from many qubits thus forms a basis set
+equations.
+                                                                    for function ﬁtting [157].
+                                                     The product feature map can be generalized to several lay-
+  Product feature maps. First, we consider a product feature     ers of rotations ℓ= 1, 2, ..., L, various nonlinear functions ϕℓ
+map that uses qubit rotations, but has nonlinear dependence on    and speciﬁc subsets of qubits N, written as
+the encoded variable x. In the simplest case this corresponds                                L
+to a single layer of rotations written in the form                                 ˆUϕ(x) = Y O ˆR(ℓ)α, j(ϕℓ[x]).              (7)
+                                                                                                    ℓ=1  j∈Nℓ
+                                  N′                                   Next, we show how the quantum feature map can be diﬀer-
+                  ˆUϕ(x) = O ˆRα, j(ϕ[x]),                (5)     entiated. Let us use the example in Eq. (5) considering α = y
+                                                                    rotations and a full layer. The derivative for a unitary opera-                                   j=1
+                                                                       tor generated by an involutory matrix (length-1 Pauli string in
+                                                                         this case) can be written as
+where N′ ≤N is the number of qubits used for the encoding.                                                        d        1  d      ! XN ON
+                                                                                                                                                                                                                                                                       j, j′) ˆRy, j(ϕ[x])   (8)ˆRα, j(ϕ) := exp −i ϕ2 ˆPα, j  is a Pauli rotation operator for Pauli      dx ˆUϕ(x) = 2  dxϕ(x)         (−i ˆYj′δ
+matrices ˆPα, j =  ˆXj, ˆYj, or ˆZj (α = x, y, z, respectively) act-                                           j′=1  j=1
+ing on qubit  j with phase ϕ. This represents the feature map                  1  d      ! XN ON
+                                                   =                               ˆRy, j(ϕ[x] + πδj,j′),choice used in quantum circuit learning [73], and several sim-                  2  dxϕ(x)
+ilar encodings were discussed in [86, 157], and reviewed in                                             j′=1  j=1
+[67]. The next step is to assign a nonlinear function for rota-    where Euler’s formula can be used to rewrite the derivative
+tion, with a popular choice being ϕ(x) = arcsin x and α = y     into the form of a sum of unitaries, where x-dependent rota-
+such that only real amplitudes are generated. The correspond-     tions are shifted one-by-one. Next, the formula can be gen-
+ing circuit is shown in Fig. 3(a). The unitary operator Eq. (5)     eralized to the expectation value of any observable ⟨ˆC⟩for
+=== PAGE 6 ===
+                                                                                                     6
+
+the encoded state, following the steps of a standard parameter                                  y
+shift rule [73, 103]. This reads
+
+   d                     1  d      !
+  dx⟨Ø|ˆUϕ(x)† ˆCˆUϕ(x)|Ø⟩= 4  dxϕ(x)  ⟨ˆC⟩+ −⟨ˆC⟩−    (9)
+
+where ⟨ˆC⟩+ and ⟨ˆC⟩−are the sums of shifted unitaries
+
+
+        N   N
+   X O           π              π
+ ⟨ˆC⟩± =        ⟨Ø|ˆR†y,j(ϕ[x] ± 2δ                                                                                   j, j′) ˆCˆRy, j(ϕ[x] ± 2δj,j′)|Ø⟩.
+           j′=1  j=1
+                                                               FIG. 4: Fitting with Chebyshev polynomials. As an example we
+                                                       (10)                                                        show a ﬁt of the function y(x) = exp(−1/25x2)cos(20x) using diﬀer-
+                                                                        ent number n Chebyshev polynomials up to degree n −1. We note
+The corresponding derivative quantum circuits (9) are shown
+                                                                    here that the target function is oscillatoric and is decaying exponen-
+in Fig. 3(b), where diﬀerentiation of the cost function for                                                                                            tially. The thick solid curve denotes the desired function y(x) and the
+feature map is performed using the chain rule (highlighted    dashed curves are the obtained ﬁtting curves (see legend). Their ﬁt
+rotations). A similar strategy can be applied for generic    improves with n. The basis set with n = 2 is unable to represent the
+multilayer feature maps and a diﬀerent choice of nonlinear     function faithfully (only the linear ﬁt is available). Increased basis
+map ϕ(x).  Finally, in the cases where the generator of the     set size with n = 16 represents the desired function in some regions
+feature map (encoding Hamiltonian ˆH) is not an involutory     of x, and n = 64 successfully provides an accurate ﬁt.
+matrix we can rewrite them as a sum of unitary operators,
+and measure the derivative as a sum of overlap measurements
+using the SWAP test [104, 158, 159].                              crucial properties of Chebyshev polynomials are their chain-
+                                                              ing properties, nesting properties, and simple diﬀerentiation
+  Chebyshev feature maps.  Next, we consider a distinct     rules.  The chaining properties for polynomials of the ﬁrst
+choice of nonlinear quantum feature map that we name the    and second kind read as 2Tm(x)Tn(x) = Tm+n(x) + T|m−n|(x)
+Chebyshev feature map.  Belonging to the product feature    and Um(x)Un(x) = Pnk=0 Um−n+2k(x), respectively. Derivatives
+map family, it drastically changes the basis set for function    can be obtained as dTn(x)/dx = nUn−1(x).  Nesting corre-
+representation. As a building block we use a single qubit ro-    sponds to the relation Tn(Tm(x)) ≡Tnm(x). Finally, polyno-
+tation ˆRy,j(ϕ[x]), but with nonlinearity introduced as ϕ(x) =    mials of diﬀerent kinds can be converted between as Un(x) =
+2n arccos x, n = 0, 1, 2, .., such that the encoding circuit reads    2 Pnj even T j(x) when n is even, and Un(x) = 2 Pnj odd[T j(x)−1]
+                                                 when n is odd.  Finally, we note that Chebyshev polynomi-
+                     N                                           als represent oscillating functions deﬁned in the region x =      O
+             ˆUϕ(x) =        ˆRy, j(2n[ j] arccos x).         (11)    (−1, 1), and their derivatives diverge at the boundaries of this
+                             j=1                                           interval.
+                                                     The power of the described representation can be inferredHere we consider that the coeﬃcient n[ j] may in general de-
+                                                      from approximation theory.  It states that any smooth func-
+pend on the qubit position  j. Note that the seemingly small                       P∞
+                                                                    tion can be represented as f(x) =   n=0 AnTn(x),    |x| ≤1.change of factor two multiplication for ϕ(x) = 2 arccos x (as
+                                           An example of ﬁtting a set of Chebyshev polynomials of thecompared to previously considered product map with ϕ(x) =
+                                                                    ﬁrst kind to a function is shown in Fig.  4. As expected thearccos x) goes a surprisingly long way. Namely, let us expand
+                                                   more basis functions we use, the more accurate of a ﬁt we canthe rotation using Euler’s formula, getting
+                                                                   obtain. As shown in the Remez algorithm [161, 162], Cheby-
+                               arccos(x)   !                  shev polynomials form an optimal set of basis functions in the
+              ˆRy, j(ϕ[x]) = exp −i2n              ˆYj             (12)    sense of the uniform L∞norm. This is why they are at the                            2
+                                                             foundation of spectral algorithms for solving ODEs [34], and
+      = cos(n arccos(x))1 j −i sin(n arccos(x))ˆY j                                                                  also give an edge in quantum simulation [10, 163].             √
+      = Tn(x)1 j +  1 −x2Un−1(x) ˆXj ˆZj.                       In the present study we consider two types of Chebyshev
+                                                     quantum feature maps.  The ﬁrst version corresponds to a
+The resulting decomposition (12) corresponds to a unitary op-    sparse Chebyshev feature map deﬁned as
+eration with matrix elements deﬁned by degree-n Chebyshev
+polynomials of ﬁrst and second kind, denoted as Tn(x) and       ON
+Un(x), respectively [160]. The low degree Chebyshev poly-                    ˆUϕ(x) =        ˆRy, j(2 arccos x),           (14)
+nomials of the ﬁrst kind are written explicitly as T0(x) = 1,                                     j=1
+T1(x) = x, T2(x) = 2x2 −1, T3(x) = 4x3 −3x, and higher
+                                                      where the encoded degree is homogeneous and equal to one.
+degrees can be deduced using the recursion relation
+                                                      Here we make use of the chaining properties Tn(x) and Un(x),
+               Tn+1(x) = 2xTn(x) −Tn−1(x).            (13)    noting that once we create states with Chebyshev polynomials
+                                                               as prefactors, the basis set will grow further by concatenating
+Similarly, we can write second-kind Chebyshev polynomials    elements. Henceforth we drop the sparse distinction and sim-
+as U0(x) = 1, U1(x) = 2x, Un+1(x) = 2xUn(x) −Un−1(x). The    ply refer to (14) as Chebyshev feature map. Importantly, the
+=== PAGE 7 ===
+                                                                                                     7
+
+unitary operators in Eq. (14) have nonlinear dependence on    able x reads ˆUϕ(x) = NNj=1 exp(−i π2 x j ˆXj), where {x j} denote
+variable x, leading to a harmonic feature mapping.               binary values for the parameter x in j-th digit. The diﬀerenti-
+  The second version we consider corresponds to a Cheby-     ation of the digital feature map then relies on the product rule
+shev tower feature map deﬁned as                                 for N rotations, and also includes the binary derivative of the
+                                                                  variable from the product rule.
+                      N
+      O                                  Another possibility is converting the variable into a decimal
+               ˆUϕ(x) =      ˆRy,j(2j arccos x),           (15)              P                                                                 representation as xint =       j xj · 2 j. For the reverse procedure
+                               j=1
+                                             we can identify each binary digit x j by the remainder of the re-
+                                                             peated division xj = mod(xint, 2j). We can thus rewrite ˆUϕ(x)where the encoded degree grows with the number of qubits,
+                                                               as a function of xint, and learn how to diﬀerentiate circuits withcreating a tower-like structure of polynomials with increasing
+n =  j. Again, as polynomials chain together and morph be-     this feature map with respect to x = xint.
+                                                                     Digital quantum feature maps oﬀer a potentially power-tween two kinds and their degrees, the basis set is largely en-
+                                                                       ful technique when dealing with functions of discrete vari-riched. This is the choice we exploit when large expressibility
+                                                                     ables. Paired with expressive variational ansatze they may of-is needed without increasing system size and number of rota-
+                                                                       fer function encoding with memory savings of the amplitudetions. Eq. (15) allows the representation of generic functions,
+                                                             encoding, while avoiding the input problem. The details ofand can be improved further by using layers of rotations as in
+                                                                        digital feature map training will be discussed in future works.Eq. (7).
+  Evolution-enhanced feature maps. Product feature maps
+induce nonlinear mappings between variable(s) x and quan-
+tum states described by tensor products of separate single-                   B.  Variational quantum circuits
+qubit wavefunctions.  These states are limited to the sub-
+space of product states.  To utilize the power of the entire     To construct the solution of diﬀerential equations as a quan-
+Hilbert space of the system, approaching the amplitude en-   tum circuit we need to manipulate the latent space basis func-
+coding case, we need to populate independently distinct am-     tion and bring both derivatives and function to the required
+plitudes, including the subspace of entangled states. To make    form. This is achieved through the variational circuit ˆUθ, typ-
+the described feature maps even more expressive, we sug-     ically referred to as a variational quantum ansatz. Below we
+gest enhancing product feature maps (and speciﬁcally the lay-     detail architectures employed.
+ered Chebyshev map) with additional entangling layers rep-     Hardware eﬃcient ansatz. As a ﬁrst choice of variational
+resented by Hamiltonian evolution. Namely, after the set of     circuit ˆUθ we consider layers of parametrized rotations, fol-
+single qubit rotations we consider another unitary exp(−i ˆHτ)    lowed by layers of CNOT operations. This is known as a hard-
+which acts for time τ and is generated by the Hamiltonian ˆH.    ware eﬃcient ansatz (HEA) which was originally proposed for
+The sketch of the circuit is shown in Fig. 3(c). By choos-   VQE for chemistry applications [45]. The structure of a HEA
+ing ˆH as a complex many-body Hamiltonian we ensure that    quantum circuit corresponds to concatenated layers of single
+exponentially many amplitudes are generated.   It is known    qubit rotations and global entangling layers for all N qubits,
+that the quantum simulation of dynamics leads to a volume-   shown schematically in Fig. 5(a). Rotations are arranged in a
+like increase of entanglement. One important choice is when      ˆRz-ˆRx-ˆRz sequence parametrized by independent angles θ such
+ˆH corresponds to a hard problem from NP-hard complexity     that arbitrary single-qubit operations can be reproduced. The
+class, as proposed in Ref. [74]. Then using two layers of rota-    entangling layer is chosen as a network of CNOTs. We here
+tions plus evolution the embedding becomes diﬃcult to simu-    consider speciﬁcally a linear quantum device connectivity, but
+late classically, but can be implemented as a unitary evolution    the entangling layer can be generalized to other connectivi-
+on a quantum computer. Additionally, we envisage an evolu-     ties. The block of rotations plus CNOTs is then repeated for
+tion layer that is parameter-dependent, τ(x). In this case the    a depth of d times. As the number of layers d grows, the
+evolution-enhanced feature map can also be seen through the     circuit’s expressive power increases. Expressive power is the
+prism of the recently proposed Fourier feature maps [155].     ability to represent arbitrary N-qubit unitary gates. However,
+This class of quantum feature maps is based on the evolu-     this comes with an increased number of controlled parameters
+tion operator exp(−i ˆHdatax), which is applied for some set of    which can complicate the search for an optimal θopt for the
+qubits. The Fourier map lets functions be encoded as Fourier     solution, known as a problem in trainability. This can change
+series deﬁned by the diﬀerences of the eigenvalues of ˆHdata.    depending on the variational ansatz type and cost function
+As it involves unitary operators with phases being linear func-    choice [70].
+tions of x, this is a fully harmonic mapping. The evolution-      Alternating blocks ansatz. A second option is to use the
+enhanced feature map then joins the Chebyshev and Fourier     alternating blocks ansatz (ABA), where instead of global
+basis sets, encoded in the full Hilbert space for complex ˆH.      entangling layers separate subblocks are used, interleaved
+  Digital quantum feature maps.  Another possibility for     into a checkerboard form [Fig. 5(b)]. Each subblock has a
+encoding the data using a feature map is to transform a data in-    hardware eﬃcient form shown in Fig. 5(a) for the speciﬁed
+stance into a computational basis state, which we refer to as a    depth b. For the ﬁrst layer the width of the subblock (number
+digital quantum feature map. This relates x, written in binary    of active qubits) is equal to Nb such that ⌈N/Nb⌉blocks are
+form, to the corresponding state |x⟩in binary representation.    used (and is smaller than Nb if N/Nb is not an integer). The
+The feature map circuit ˆUϕ(x) used to encode the binary vari-    next layer consists of the same subblocks, but is shifted by
+=== PAGE 8 ===
+                                                                                                     8
+
+    (a)   Rz(¢1)  Rx(¢N+1)                 depth-1 block                use stochastic gradient descent, and speciﬁcally its adaptive
+                                                               version represented by Adam [166]. For this, the gradients
+             Rz    Rx    Rz            Rz    Rx    Rz                   of the variational circuit ∇θ ˆUθ are measured using the auto-
+                                                                                    ...        matic diﬀerentiation approach, as performed in previous stud-
+             Rz    Rx    Rz            Rz    Rx    Rz                     ies [73, 81, 103]. The gradient is also weighted with a learn-
+      | f (x)                                                                         ...        ing rate, commonly referred to as α.  Choosing an ansatz
+             Rz    Rx    Rz            Rz    Rx    Rz                  parametrized by single-qubit rotations allows the application
+                                                                                    ...        of the parameter shift rule, while overlap measurement opens
+             Rz    Rx    Rz            Rz    Rx    Rz                up options for more general strategies [158].
+                ...     ...     ...                ...     ...     ...             ...            Finally, we note that choosing the optimal ansatz is an
+                                                      open challenge for improving DQC training. In comparison
+                      variational quantum circuit U¢
+                                                                    to chemistry problems where the structure may be inspired by
+                                     d layers = 4                                                               physical reasoning [39, 40], this is not the case for diﬀeren-
+    (b)
+                                                                                   tial equation solvers and further studies in this direction are
+           depth-b                                           needed.
+              block
+
+
+                                                                                 C.  Cost function
+
+
+                                                     To read out information we choose a Hermitian cost oper-
+                                                                    ator ˆC to measure as an observable. This allows relating the
+                     alternating blocks variational circuit                                                               expectation of ˆC, parametrized by nonlinear variable depen-
+                                                         dence and variational angles, to the scalar function f(x) as
+FIG. 5: Variational quantum circuits. (a) A variational ansatz in                                                                            ⟨fϕ,θ(x)|ˆC| fϕ,θ(x)⟩. In general many possible choices of cost
+the hardware-eﬃcient form.  It consists of a parametrized rotation
+                                                                operators are available. The simplest example corresponds
+layer forming ˆRz- ˆRx- ˆRz pattern, such that an arbitrary single qubit
+                                                                    to the magnetization of a single qubit  j, ⟨ˆZj⟩. Note that thisrotation can be implemented. Variational angles θ are set for each
+                                                             choice allows representing functions in range [−1, 1], and re-rotation individually. The rotation layer is then followed by an en-
+tangling layer chosen as CNOT operations between nearest neigh-    quires rescaling for other intervals. Other choices include total
+bours. The blocks of “rotations-plus-entangler” are repeated d times    magnetization in the system ˆC = P j ˆZj with equal or random-
+to form the full variational circuit ˆUθ. (b) Alternating blocks ansatz.    ized weights.
+The variational circuit consists of blocks of width Nb qubits (Nb/2 for       Additionally, we can choose the cost as a quantum Hamil-
+boundary qubits). Blocks are chosen in the hardware-eﬃcient form    tonian that has a provably complex spectrum, and for instance
+shown in (a) with depth of b. The blocks are placed in a checkerboard    belongs to ergodic phase.  This can be written as an Ising
+pattern, and repeated dlayers times. The goal is to entangle qubits lo-    Hamiltonian with additional transverse and longitudinal mag-
+cally, while avoiding global entangling operations that can result in
+                                                                    netic ﬁelds,
+vanishing gradients during θ optimization.
+                                                                                               ˆC = X Jj, j+1 ˆZj ˆZj+1 + hzj ˆZj + hxj ˆX j,         (16)
+                                                                                                                                                                               j
+⌊Nb/2⌋, where subblocks at the ends are adjusted to span the    where the Ising couplings J j,j+1 and hz,xj  can be inhomoge-
+remaining qubits. The described checkerboard-like structure    neous. We note that for cost functions with several non-
+is repeated for dlayers.  The motivation behind ABA is that    commuting groups of observables we can use a Hamilto-
+we want to entangle qubits locally ﬁrst, and gradually form    nian averaging procedure, where term-by-term measurement
+a correlated state by interleaving subblocks.  This helps to     is performed. Moving on from nearest-neighbour Hamiltoni-
+improve trainability of the circuit together while maintaining     ans, we can also exploit spin-glass type cost functions of the
+high expressibility [70, 164].                               form
+                                                                                                    ˆC = X Ji, j ˆZi ˆZj + X hzj ˆZj.            (17)  Here, several points are due. First, we note that the choice
+                                                                                                                 i<j                          j
+of ansatz is sensitive to the choice of the cost function oper-
+ator (see the next subsection), as dictated by the symmetry.    These are known to include NP-hard problem instances, and
+Namely, as a consequence of cost function choice we need    they allow for high expressibility of the circuit describing the
+to choose non-commuting generators ˆG j for the variational    DE’s solution. Finally, a generic cost function may contain a
+ansatz such that [ˆC, ˆG j] , 0. This ensures that the solution     large set of Pauli strings, similar to some instances in quantum
+                                                                chemistry.space can be spanned. Also, we can account for the symme-
+                                                              Together with measuring individual cost functions, we alsotries, reducing the Hilbert space for the solution search.  In
+                                                              consider functions being represented by a classically weightedmany cases generators can be chosen such that only real am-
+                                                sum of observables. This readsplitudes are generated, see for instance [70]. We can also use
+adaptive strategies or a genetic search [54, 55, 165].                                             ˆC = X αℓˆCℓ,                   (18)
+  Second, to search for the optimal circuit parameters we                                               ℓ
+=== PAGE 9 ===
+                                                                                                     9
+
+where αℓ∈R are weighting coeﬃcients, and ˆCℓare cost func-    While being simple, we ﬁnd the choice (22) intuitive and per-
+tions that can be chosen from the pool of operators described    forming suﬃciently well in numerical simulations. Addition-
+above. Importantly, we consider the coeﬃcients αℓto be tun-     ally we also consider mean absolute error (MAE) loss deﬁned
+able, such that the gradient descent (represented by Adam in    with distance L(a, b) = |a −b|. Finally, several more complex
+our case) can adjust the cost to have optimal form. This pro-    metrics can be used, including variants of Kullback-Leibler
+cedure further harnesses the strength of the proposed hybrid    (KL) divergence and Jensen–Shannon divergence. Being the
+quantum-classical workﬂow.                                      loss functions routinely used in statistical modelling, we ex-
+                                                               pect them to perform well for speciﬁc systems.
+                                                     The choice of loss functions dictates how the optimizer per-
+                     D.  Loss function                          ceives the distance between vectors and therefore aﬀects the
+                                                             convergence. MSE places a greater emphasis on larger dis-
+  To solve the system of diﬀerential equations we need to pro-    tances and smaller weight on small distances, strongly dis-
+vide a way to quantify how well the DQC-suggested trial func-    couraging terms with large L.  Both MAE and KL do not
+tion matches the conditions to represent the solution of the    place such an emphasis and may have slower convergence.
+problem being considered. The classical optimizer can then    However, once close to the optimal solution they can achieve
+update the variational parameters to reduce this ‘distance’.    higher accuracy than MSE.
+This distance corresponds to the diﬀerence between a diﬀer-
+ential equation (all terms collected on one side) and zero. The
+diﬀerence is evaluated at a set of points. We also need to check                       E.  Boundary handling
+if the solution matches initial and boundary conditions. This
+can be recast as an optimization problem for a loss function of     As our goal is to construct a quantum circuit that satis-
+derivatives and functions evaluated at a grid of points.          ﬁes a system of diﬀerential equations, together with matched
+  We can write a loss function parametrized by variational     derivatives we need to ensure that an initial value or bound-
+parameters θ in the general form                               ary value problem is solved.  Generally this corresponds to
+   Lθ[dx f, f, x] = L(diﬀ)θ   [dx f, f, x] + L(boundary)θ        [ f, x],    (19)    ﬁxinglectiontheof boundaryfunction valuepoints,at thusa requiredresemblinginitialthepointquantumor a col-cir-
+where we split the loss contribution from matching the dif-     cuit learning tasks considered in Ref. [73]. At the same time,
+ferentials L(diﬀ)θ   and the loss contribution from satisfying the     there are several ways how the DQC-based function fθ(x) can
+                                                        be constructed, leading to varying performance and speciﬁc
+boundary conditions L(boundary)θ           . The diﬀerential loss is de-    pros/cons when solving particular problems.
+ﬁned as
+                                                               Information about the boundary can be included as part of
+                  M                                      the loss function [Eq. (19)]. For the MSE loss function type                  1 X
+    L(diﬀ)      θ   [dx f, f, x] =      L F[dx f(xi), f(xi), xi], 0    (20)    the boundary part (21) can be written in the form           M
+                               i=1
+with L(a, b) being a function describing how the distance be-                     L(boundary)                                                                                                  θ        [ f, x] = η fθ(x0) −u0 2,         (23)
+tween the two arguments a and b is being measured. The loss
+is estimated on a grid of M points, and is normalized by the    where x0 represents the set of boundary points (or an initial
+grid size. Functional F corresponds to the diﬀerential equa-     point), and u0  is a vector of boundary values, and η is a
+tion written in the form F[dxu, u, x] = 0. It can be evaluated by    pinning coeﬃcient as described previously.
+combining values of f and dx f at the training grid points. We
+stress that the functional includes information about all diﬀer-      Pinned boundary handling. The ﬁrst option is to include
+ential equations when we deal with the system, such that con-    the information about the boundary in the expectation of the
+tributions from all equations are accounted for. The boundary    cost function. This corresponds to simply choosing a cost op-
+loss contribution reads                                             erator ˆC, and representing the solution in the form
+                 L(boundary)                    θ        [ f, x] = ηL( f(x0), u0)           (21)                       f(x) = ⟨fϕ,θ(x)| ˆC| fϕ,θ(x)⟩.             (24)
+which includes the distance between the function value at the
+                                                   The initial value u0 is then matched via the boundary termboundary x0 and given boundary value u0. We note that x0
+                                                                    in the loss function.  The strength of the pinned boundarycan be an initial point or a set of boundary points. We also
+introduce η as a boundary pinning coeﬃcient that controls the    handling is in equivalent treatment of boundary and derivative
+                                                                terms, both being encoded in ˆC. At the same time, the weak-weight of the boundary term in the optimization procedure. In
+particular, larger η > 1 may be used to ensure the boundary is    ness corresponds to the necessity of adjusting the boundary
+                                                              value starting from the one represented by initial θinit, typi-prioritised and represented to higher precision.
+                                                                    cally generated randomly.  This can be adjusted by shifting  We have considered several choices of the loss deﬁned by
+                                                                   f(x) by a constant-times-identity term added to the cost op-three distance deﬁnitions L. The ﬁrst loss type corresponds to
+                                                                         erator, ˆC = α01 + PMj=1 α j ˆC j, where α0 is set such that forthe mean square error (MSE) introduced as
+                                                                                             θinit ∼random[0, 2π] the function ⟨fϕ,θinit(x)| ˆC| fϕ,θinit(x)⟩typi-
+                     L(a, b) = (a −b)2.                 (22)                                                                    cally lies close to u0 value when evaluated at x = x0.
+=== PAGE 10 ===
+                                                                                                    10
+
+
+  Floating boundary handling. The second choice of the                               F.  Regularization
+boundary handler corresponds to iteratively shifting the esti-
+mated solution based on the boundary or initial point.  For
+                                                         Given that our goal is to ﬁnd a variational spectral represen-this method the boundary information does not require a
+                                                                      tation of the diﬀerential equations solution using large basisseparate boundary loss term nor  is  it encoded in the ex-
+                                                                           sets, the optimization procedure beneﬁts from having a goodpectation of the cost function.  Instead  it is set iteratively
+                                                                               initial guess, or “pre-trained” DQCs. We can achieve this bywithin the parametrization of the function. As the function is
+                                                               introducing a regularization procedure [167, 168], also help-parametrized to match a speciﬁc boundary, information about
+                                                              ing the optimizer to avoid getting trapped in local minima.the boundary is still contained within the function and its
+                                                                Variants of the regularization procedure include: 1) feeding-inderivatives.  Therefore boundary information is still present
+                                                                    prior information about the potential solution; 2) biasing thewithin the loss function despite there not being a separate
+                                                  DQC-based solution into a speciﬁc form; 3) searching for aboundary loss term. We parametrize the function as
+                                                                  solution in a region close to the boundary values, and feeding-
+                                                                    in points from the ﬁrst training into next sessions. The in-
+                f(x) = fb + ⟨fϕ,θ(x)| ˆC|fϕ,θ(x)⟩,           (25)                                                              put for procedures 1) and 2) consists of regularization points
+                                                                    for the variable(s) {xreg}Rr=1, together with corresponding func-
+with  fb ∈R being a parameter adjusted after each iteration     tion values {ureg}Rr=1 for R points. Similarly, we can consider
+step as                                                            regularization based on the derivative values. We employ the
+                                                               simplest strategy where an additional contribution to the loss
+                     fb = u0 −⟨fϕ,θ(x0)|ˆC| fϕ,θ(x0)⟩.           (26)    function comes from the regularization points, L(reg)θ   [ f, x].
+                                                           This loss is deﬁned such that the DQC-based function matches
+This  eﬀectively  allows  the  solver  to  ﬁnd  a  function    the regularisation values at corresponding grid points. This
+⟨fϕ,θ(x)|ˆC| fϕ,θ(x)⟩which  solves  the  diﬀerential  equation    has a form analogous to the boundary loss contribution. Using
+shifted to any position, then being shifted to the desired ini-   MSE loss as example, the regularization contribution reads
+tial condition as shown in Eq. (25). This method of boundary
+handling guarantees exact matching to initial values given and
+                                                                                     R
+does not require a separate boundary term in the loss function,                 L(reg)                                                                                             θ   [ f, x] = X ζ(n j)  fθ(xreg,r) −ureg,r 2,      (28)thus the derivative loss term does not have to compete with the
+                                                                                                   r=1
+boundary loss. Furthermore, as we allow the cost function to
+match to the solution shifted by any amount, this simpliﬁes the
+choice for optimal angles and removes the dependence on ini-    where nj denotes the iteration step.  ζ(nj) is introduced as
+tial θinit. However this method does require knowledge of an    an iteration step-dependent regularization weight, and thus
+exact initial value which can be an issue in speciﬁc situations.    denoting an optimization schedule.  In general, we require
+This technique can be generalized for multivariable problems    higher emphasis on the regularization-based training at ini-
+which have an initial condition as a function of a subset of      tial stages, which shall diminish to zero at higher iteration
+the independent variables. Evaluation of the derivatives of the    numbers.  This leads to the prior information being used at
+initial condition function is required for encoding the partial     ﬁrst, setting a rough solution or preferred function behavior,
+derivatives of the represented function.                         followed by precise derivative loss optimization at later train-
+  Optimized boundary handling. Finally, we also propose    ing stages. One possible choice of an optimization sched-
+a boundary handing technique that relies on a classical shift    ule corresponds to linearly decreasing regularization weight,
+of the solution, but deﬁned by the gradient descent procedure     ζ(nj) = 1 −nj/niter, where nj is current iteration number and
+on par with variational angles optimization. This removes the      niter is the maximum iteration number. This strategy works for
+need to include boundary information in the cost expectation,    small learning rates and large number of iterations, such that
+but information still needs to be included in the loss function.    the optimizer has suﬃcient “time” to adjust to the constantly
+Namely, we seek for the solution in the form                   changing loss landscape. Another choice corresponds to a re-
+                                                               verse sigmoid optimization schedule, where a smooth drop
+                f(x) = fc + ⟨fϕ,θ(x)|ˆC| fϕ,θ(x)⟩,           (27)    of regularization weight is performed at pre-deﬁned training
+                                                                     stages. We parametrize this schedule as
+
+where  fc ∈R is a variational parameter alongside the quan-
+tum ansatz angles and updated accordingly via the classical                                       nj −ndrop !
+                                                                                                                      (29)                                                                           ζ(n j) = 1 −tanhoptimizer.  Therefore, the gradients for  fc have to be calcu-                                                                                        δ jniter
+lated additionally when using this boundary handler.  One
+strength of the described method is that, due to the classi-
+cal shift, even  if the random initial angles start such that    where ndrop denotes the iteration step number at which regu-
+⟨fϕ,θinit(x0)| ˆC|fϕ,θinit(x0)⟩is far from the initial value u0, the op-     larisation weight drops, and δ j assigns the transition rate. This
+timizer can quickly and easily update  fc to rectify this. A    allows the DQC to initially focus almost entirely on the regu-
+weakness however is that the boundary and diﬀerential terms     larisation optimization, later switching the focus towards the
+in the loss may compete against one another.                     gradient optimization.
+=== PAGE 11 ===
+                                                                                                    11
+
+
+               G.  Multifunction encoding                          is constructed, accounting for the boundary handling proce-
+                                                                 dure.  Next, the derivative quantum circuits are constructed
+  When solving a system of diﬀerential equations we need to    and their expectation value is estimated for the speciﬁed cost
+decide how multiple functions should be encoded simultane-     function, at point xi. Repeating the procedure for all xi in X we
+ously. There are several ways that this can be achieved. The     collect function values and derivatives, and compose the loss
+ﬁrst approach we consider is to use the same quantum regis-    function for the entire grid and system of equations (form-
+ter for all functions, thus compressing information about the    ing required polynomials and cross-terms by classical post-
+function vector using the same feature map circuit and vari-    processing). Regularization points may be also added, biasing
+ational ansatz.  The functions are then deﬁned through the    the solution to take speciﬁc values at these points. The goal of
+choice of diﬀerent cost operators at the readout stage. This    the loss function is to assign a “score” to how well the poten-
+method is resource-frugal, and is suitable for certain systems.      tial solution (parametrized by the variational angles θ) satisﬁes
+However, the choice of suitable cost operators becomes com-    the diﬀerential equation, matching derivative terms and the
+plicated, as in some cases shared register encoding may ex-    function polynomial to minimize the loss. With the aim to in-
+hibit competition between the optimization of diﬀerent func-    crease the score (and decrease the loss function), we compute
+tions. This concerns the question of expressibility of the set of    the gradient of the loss function with respect to variational pa-
+cost operators, and may potentially be solved using a weighted    rameters θ. Using the gradient descent procedure (or in prin-
+sum of operators with optimized weights. A second option     ciple any other classical optimization procedure) we update
+is to use separate quantum registers, and correspondingly a    the variational angles from iteration n j = 1 into the next one
+diﬀerent feature map and variational ansatz for each func-     nj + 1, θ(nj+1) ←θ(nj) −α∇θL (with α being here a “learning”
+tion. This removes the issue of choosing the cost operators,     rate), and repeat the steps outlined before until we reach the
+and avoids the related direct competition due to independent     exit condition. The exit condition may be chosen as: 1) the
+parametrization. While requiring more resources we note that    maximal number of iterations niter reached; 2) loss function
+function and derivative evaluation can be done in parallel.    value is smaller than pre-speciﬁed value; and 3) loss gradient
+However, we note that as a combined loss function is con-     is smaller than a certain value. Once we exit the classical loop,
+sidered care must be taken when timing the circuit runs.          the solution is chosen as a circuit with angles θopt that mini-
+                                                      mize the loss. Finally, we extract the full solution by sampling
+                                                                 the cost function for optimal angles ⟨uϕ,θ(x)|ˆC|uϕ,θ(x)⟩. No-
+           H.  DQC-based solver: the workﬂow                   tably, this can be done for any point x, as DQC constructs the
+                                                                  solution valid also beyond (and between) the points at which
+                                                                    loss is evaluated originally.
+   Finally, using the elements and strategies described above,
+we present a workﬂow for constructing the diﬀerential equa-
+tion solver based on derivative quantum circuits. This is sum-
+                                                                                                  IV.  RESULTS
+marized in Fig. 1 showing the ﬂowchart. We start by spec-
+ifying the input for the solver. This comprises the problem
+                                                              Diﬀerential equation example. Now let us see how the al-in hand, speciﬁed as a set of nonlinear diﬀerential equations
+                                                          gorithm performs in practice. For this we choose a diﬀerentialof various types, together with their respective boundary con-
+                                                             equation with a known analytical solution, and compare it toditions.  Additionally, a set of regularization points may be
+                                                                 the one obtained by the derivative quantum circuit. We chooseadded to ensure the optimized solution is chosen in the desired
+                                                           a single ODE for the initial value problem which readsqualitative form. Next, we set up the schedule for derivative
+quantum circuit optimization and choose the quantum circuit
+                                                             du
+composition. For this we choose: a) the type of quantum fea-            + λu κ + tan(λx) = 0,  u(0) = u0,       (30)
+                                                             dxture map; b) the ansatz of variational quantum circuit, includ-
+ing its depth; c) the cost function type, also choosing if varia-    where λ and κ are real parameters, and u0 sets the value of the
+tional weights are considered; d) the type of the loss function;    function u at x = 0. Eq. (30) has a solution in the form of a
+e) the strategy to match the boundary terms and derivatives.   damped oscillating function,
+We also need to specify the classical optimizer for variational
+angles and weights (with associated hyperparameters), includ-                  u(x) = exp(−κλx)cos(λx) + const,         (31)
+ing the number of iterations and exit conditions. Finally, we
+specify whether the loss function uses a speciﬁc optimization    where const is determined by the initial condition.  While
+schedule, where it is changing during the training.                the problem is fairly simple being a single ODE, reproducing
+  Once the DQC structure and optimization schedule are de-    the damped oscillating solution requires a rich basis of ﬁtting
+ﬁned, we need to specify a set of points X for each equation     functions, that needs to include both oscillatoric and increas-
+variable. This can be a regular equidistant grid, Chebyshev    ing/decreasing functions. As λ and κ grow the function starts
+grid, or a randomly-drawn grid. The variational parameters     to oscillate and decay even more rapidly, and the solution be-
+are set to initial values θ ←θinit (e.g. as random angles). The    comes harder to express.
+expectation value over variational quantum state |uϕ,θ(xi)⟩for     To show how the proposed method works, we use derivative
+the cost function is estimated using the quantum hardware for    quantum circuits to solve Eq. (30) using optimization of diﬀer-
+the chosen point xi. Then a potential solution at this point     entiable quantum feature maps. Speciﬁcally, we choose two
+=== PAGE 12 ===
+                                                                                                    12
+
+(a)                                              (b)                                        1            (c)
+                                                                                                         2
+                                                                                                         3
+                                                        2                                                4
+
+                                                                                                                2
+                                                                       1,3,4
+                                                                                                                3
+
+                                              1
+                                              2                                                                                  1,4
+                                              3
+                                              4
+
+
+(d)                                      12               (e)                                                    13   (f)                                      12
+                                          3                                                                                                                       3
+                                          4              1                                                                                                        4
+                                          5                                                                                                                       5
+                                          6                                                                                                                       6                                                                                                                    2
+                                                                                                                    4                                            7                                                                                                                                                                                 1                                                         2                                                                                                                                                                  8
+                                                         3                                                           5                                                           5
+                                                         5                                              1                                                                        3
+                                                                                                        2                                                                        7
+                                                                                                                                                                                 2                                                                                                        3
+                                                                                                        4
+                                                                                                        5
+                                                         4
+                                                                                                        6                                                                        6
+                                                                                                                                                                                 4
+                                                         6                                                           6                                                           8
+
+
+
+FIG. 6: DQC-based solution for the single ODE example. (a) Results from the circuit trained to solve Eq. (30) for u0 = 1, λ = 8, and
+κ = 0.1. We present DQC solutions fϕ,θ(x) obtained using three diﬀerent quantum feature maps ϕ(x) labelled as Prod, Cheb, and ChebT.
+Corresponding DQC solutions are shown by dashed curves and labelled for clarity (see legend). Analytical solution u(x) is shown by the thick
+solid curve (label 1). (b) Same as in (a), but for λ = 20 example. (d, e) Full loss LF (dashed curves) and quality of solution LQ (solid curves) are
+shown as functions of iteration number nj for optimization results displayed in (a) and (b), respectively. (c) DQC-based solution of Eq. (30)
+shown for four diﬀerent ansatz depths d = 3, 6, 12, 24, with the analytical solution u(x) presented by the solid curve. The case of d = 3 is
+labelled for clarity. (f) Full loss (dotted curves) and quality of solution (solid curves) shown as a function of iteration number for the solution
+in (c).
+
+
+cases with parameters λ = 8 and λ = 20, and ﬁxed κ = 0.1,   map [Eq. (14)], and the tower Chebyshev feature map, as de-
+u0 = 1. These problem parameters are chosen to make DQC    ﬁned in Eq. (15). We label results for these feature maps as
+construction challenging, with λ = 20 being a complex case as    Prod, Cheb, and ChebT, respectively. To assess the perfor-
+the resulting solution is highly nonlinear and oscillatoric. We   mance we use several metrics. The ﬁrst metric is the full loss
+consider an equidistant optimization grid of 20 points, start-    (denoted as LF).  It refers to the loss calculated from the dif-
+ing from x = 0, with maximal time of 0.9 (dimensionless     ferential equations and any boundary or regularisation terms,
+units are used). This is chosen such that the region with di-     in this case Lθ[dx f, f, x] = L(diﬀ)θ   [dx f, f, x]+L(boundary)θ        [ f, x]+
+verging derivative of the nonlinear feature function dϕ(x)/dx     L(reg)                                                                                 θ   [ f, x]. The second metric corresponds to diﬀerential loss
+is avoided, and we note that x can be rescaled to match re-
+                                                                (LD), being a part of the full loss excluding regularization con-
+quired boundaries. To ﬁnd the solution we use a quantum                                                                        tribution.  Finally, the third metric is the quality of solution
+register with N = 6 qubits, and the cost function is chosen as
+                            PN                 (LQ). The quality of the solution is the distance of the cur-
+total magnetization in the Z direction, ˆC =    j=1 ˆZ j. For the     rent DQC-based solution from the known true solution. This
+variational circuit, we choose the standard hardware-eﬃcient                                                                               is calculated by evaluating the DQC-based solution and true
+ansatz described in the Methods section, setting the depth to                                                                  solution at a set of points and using the MSE loss type, being
+d = 5. To search for optimal angles θopt we perform adaptive               PM                                                             equal to LQ = (1/M)   i=1[ f(xi) −u(xi)]2.  Quality of solu-
+stochastic gradient descent using Adam [166] with automatic                                                                    tion gives us a useful way to compare how two diﬀerent train-
+diﬀerentiation enabled by analytical derivatives. Speciﬁcally,                                                              ing setups perform, especially if they are training to solve the
+we code the workﬂow using Yao.jl package [81, 169, 170] for                                                   same diﬀerential equations.
+Julia, which allows fast and eﬃcient implementation. A full
+quantum state simulator is used in a noiseless setting. In this                                                     The results of DQC training are shown in Fig. 6.  In the
+example we use the ﬂoating boundary handling.                                                             panel Fig. 6(a, b) we show the solutions of Eq. (31) for λ = 8
+  We search for the circuit-based solution using three diﬀer-    and λ = 20, respectively, where solid curve (with label 1) rep-
+ent feature maps described in the Methods section, and com-     resents the analytical solution u(x) in Eq. (31). The dashed
+pare their performance. These correspond to the product fea-    curves (labels 2, 3, 4) represent the ﬁnal DQC-based solu-
+ture map [Eq. (6)], the sparse version of the Chebyshev feature     tions sampled from the cost function at approximation points
+=== PAGE 13 ===
+                                                                                                    13
+
+( a)                     12                     (b )                         12         We also note that the alternating blocks ansatz is designed in
+                         3                                                3               the way that vanishing gradients can be avoided for certain
+                                                                          4               conditions [164].
+               1                                                                          13       Diﬀerential equation with highly nontrivial dynamics.
+             2 3                                           To highlight the importance of powerful feature maps for solv-
+                                                              ing diﬀerential equations, we provide another example with a
+                                                                                          2     rapidly oscillation non-periodic solution. We consider an ini-
+                                                                                          4
+                                                                                   tial value problem
+
+                                                    du
+                                             −4u + 6u2 −sin(50x) −ucos(25x) + 1/2 = 0,  u(0) = u0,FIG. 7: DQC-based solution for highly nontrivial dynamics ex-                                                    dx
+ample. (a) Results from the circuit trained to solve initial value prob-                                                           (32)
+lem in Eq. (32) with u0 = 0.75. We show solutions obtained using     for the function u(x). This diﬀerential equation has a solu-
+two diﬀerent feature maps: Chebyshev tower feature map (ChebT)                                                                    tion that is hard to represent since it involves both oscillatoric
+and evolution-enhanced Chebyshev tower feature map (EvEn). Cor-                                                           terms with high frequency and non-oscillatoric terms repre-
+responding DQC solutions are shown by dashed curves (labelled by
+                                                                senting growth and decay. Therefore a feature map with high
+2 and 3, respectively). The true solution is shown by a solid curve
+                                                                     expressibility is vital for this problem. To illustrate this point,
+(labelled by 1). (b) Full loss LF (dashed curves 1 and 3) and qual-
+                                             we solve Eq. (32) using DQCs with both the regular Cheby-ity of solution LQ (solid curves 2 and 4) are shown as functions of
+iteration number n j for optimization results in (a).                   shev tower feature and an evolution-enhanced version of that
+                                                                   feature map. As shown in Fig. 6, the Chebyshev tower feature
+                                              map was the most expressible of the three considered for that
+                                                          example. In this example the evolution-enhanced feature map
+(niter = 250 is used).  In Fig. 6(d,e) we show the relevant   we consider consists of an application of the Chebyshev tower
+training metrics as a function of iteration number, where solid     feature map followed by the unitary evolution exp(−i ˆHτ)
+curves denote the quality of solution (curves 2, 4, 6) and    with Hamiltonian ˆH. Speciﬁcally, we have chosen a nearest-
+dashed curves represent the full loss (curves 1, 3, 5). We ob-    neighbor Ising Hamiltonian ˆH = −J P j ˆZj ˆZ j+1 + h P j ˆX j. The
+serve that for λ = 8 both Chebyshev feature maps converge    evolution time τ is ﬁxed, and we consider couplings J and
+closely to the true solution [Fig. 6(a,d)]. The more express-    magnetic ﬁeld h to be drawn uniformly from (0, 1]. Note that
+ible Chebyshev tower feature map (curves 5, 6) takes longer    the type of Hamiltonian is not crucial, and may depend on
+to converge but reaches a solution closer to the true solution.    hardware implementation.
+The less powerful product feature map fails to converge with      For the training regime we consider u0 = 0.75, 100 training
+the loss quickly plateauing (curves 1, 2). For λ = 20 the true     points, and set evolution time τ = 2. We check that results
+solution is more oscillatoric and has stronger damping, mak-    remain consistent for diﬀerent J and h generated randomly.
+ing the solution harder to represent [Fig. 6(b,e)]. The prod-   We use Adam optimizer with learning rate 0.01 and 200 itera-
+uct feature map still fails to converge (curves 1, 2), but now     tions. The rest of the training setup is the same as considered
+also failing to converge is the simpler Chebyshev feature map     for problem Eq. (30) in the Diﬀerential equation example
+(curves 3, 4). The full loss for both cases plateaus rapidly.    with a six-qubit register, cost choice of total magnetization
+The more expressible ChebT feature map continues to per-     in the Z direction, and a hardware eﬃcient variational ansatz
+form well (curves 5, 6).  This supports the hypothesis that    with depth d = 5.
+choosing a feature map expressible enough for the problem     The results are shown in Fig. 7. First, the circuit is trained
+is important, and more simulations with more qubits oﬀers a    with the Chebyshev tower feature map.  Being expressive
+way to increase the power drastically.                             in itself,  it manages to come close to the true solution but
+  Next, we compare the eﬀect of ansatz depths for the vari-    misses some details for getting a precise solution [Fig. 7(a),
+ational circuit ˆUθ. We use d = 3, 6, 12, 24, λ = 20 and the    red dashed curve labelled as 2]. The angles this training re-
+Chebyshev tower feature map, and the rest of the training     sults in are then passed as initial angles for training with the
+setup remains the same as previously considered. These re-    evolution-enhanced feature map. The circuit is now further
+sults are presented in Fig. 6(c,f). We observe that for lower     trained for another 200 iterations to improve upon the solu-
+depths the solver is slower to converge and does not reach as     tion obtained from the initial training. As can be seen, af-
+high accuracy as it does for higher depths. As depth increases     ter this second stage of training, we are able to capture the
+more layers of parametrized gates are included in the varia-     intricate details of the solution [Fig. 7(a), blue dashed curve
+tional ansatz and so the number of variational angle parame-     labelled by 3], and both the full loss and quality of solution
+ters increase. This causes an increase in the number of gate    are improved upon [Fig. 7(b)]. The expressive power of the
+operations needed in each iteration and how many parameters    evolution-enhanced map can be increased for more complex
+the classical optimizer needs to update, raising the time taken     ˆH and larger τ, though at the expense of trainability. The full
+per iteration. As the depth of the ansatz continues to increase    discussion of the evolution-enhanced feature map will be the
+eventually the problem of barren plateaus could be encoun-    subject of separate work.
+tered [172]. Then vanishing gradients would cause the solver    We note that by adding a quantum evolution we increase
+to struggle to improve the parameters, however at d = 24 we     expressibility of the circuit.  This helps to represent highly
+had not yet ran into this with over 400 variational parameters.     oscillatoric functions. At the same time, DQCs in this case
+=== PAGE 14 ===
+                                                                                                    14
+
+(a)                                                                      1                 (b)                                                                     1
+                                                                          2                                                                                              2
+                                                                    2                                                                                                    3
+                                                                                                                                                                         4
+                                                                                                                                                                  5      5
+                                                                                                                                                                  6      6
+                                                                                                                                                                  1
+                                                                                                                                                                  3
+                                                                                                                                                                  2
+
+                                                                    1
+                                                                                                                                                                  4
+
+
+
+
+FIG. 8: DQC-based solution for the strongly coupled equations example.  (a) Results from the circuit trained to solve the system of
+diﬀerential equations Eq. (33) and Eq. (34) for u1,0 = 0.5, u2,0 = 0, λ1 = 5, and λ2 = 3. We present DQC solutions f1(x) and f2(x) obtained
+using three diﬀerent boundary evaluation techniques: pinned boundary (labelled as Pin), ﬂoating boundary (Float), and optimized boundary
+(Optim). Corresponding DQC solutions are shown by dashed curves. Analytical solutions u1(x) and u2(x) are shown by thick solid curves.
+(b) Full loss LF (dashed curves 1, 3, 5) and quality of solution LQ (solid curves 2, 4, 6) are shown as functions of iteration number nj for
+optimization results displayed in (a).
+
+
+are more diﬃcult to train, as keeping track of the gradients    each function using the diﬀerentiable feature map combined
+for oscillatoric function requires a ﬁner training grid and has    with individual variational ansatz parametrized by the set of
+a slower convergence. We envisage that τ[nj] can be set as    angles θ1 and θ2 and before deciding on the boundary evalua-
+a ﬂowing parameter of the feature map that increases from     tion type we have
+zero as iteration number n j grows (similar to annealing pro-
+cedure as in adiabatic quantum computing). This will ensure                 f1(x) = ⟨Ø|ˆU†φ(x) ˆU†θ1 ˆC(1) ˆUθ1 ˆUφ(x)|Ø⟩,       (35)
+easy trainability at the start, followed by adjusting θ’s for a
+                                                                                    f2(x) = ⟨Ø|ˆU†φ(x) ˆU†θ2 ˆC(2) ˆUθ2 ˆUφ(x)|Ø⟩,       (36)larger ﬁtting function set providing extra precision. Another
+approach is to take τ(x), adding variable-dependent ampli-                                                      where ˆC(1,2) are in principle diﬀerent cost functions for each
+tudes directly through the evolution. While in this case pa-                                                                equation. For the loss function we consider the sum of the
+rameter shift rule is not applicable, the circuit diﬀerentiation                                       MSE losses for the ﬁrst and second diﬀerential equation. This
+can be done numerically [171], with wavefunction overlaps                                                                    loss is written as Lθ[dx f, f, x] = PMi=1 L F1[dx f, f, xi], 0 +
+measured with the SWAP test [158].                 PM
+                                                                                  i=1 L F2[dx f, f, xi], 0 with F1 and F2 as written in Eq. (33)-
+  Strongly coupled equations.  Building up on the single
+                                                                     (34), and L depends on the loss choice as detailed in the Meth-
+ODE example, we proceed to consider a system of diﬀeren-
+                                                         ods section. There can be additional boundary loss terms de-
+tial equations, taking two strongly coupled diﬀerential equa-
+                                                         pending on boundary evaluation method chosen.  If present,
+tions as an example. This describes the evolution of compet-
+                                                              they contribute to the loss function as a sum of the bound-
+ing modes u1(x) and u2(x) as a function of variable x, which                                                              ary terms for u1 and u2. Note that we consider the loss as a
+in this case corresponds to time. The associated rate equations
+                                                sum of individual contributions coupled together we are try-
+read
+                                                              ing to minimise both simultaneously with equal weight. Due
+                du1                                              to the coupling between the two equations this could lead to
+  F1[dxu, u, x] =    −λ1u2 −λ2u1 = 0,  u1(0) = u1,0,  (33)    competition between the two loss terms (a parameter update               dx
+                                                      which causes a loss decrease for one DE’s loss may lead to                du2
+  F2[dxu, u, x] =   + λ2u2 + λ1u1 = 0,  u2(0) = u2,0,  (34)    an increase in the other). This may result in increasing the
+               dx
+                                                         chance of converging to a local minima rather than the global
+where λ1,2 are coupling parameters, u1,0, u2,0 are initial condi-   minimum; however, this eﬀect can be mitigated if loss con-
+tions. The larger |λ1| is in comparison to |λ2| the more strongly     tributions are weighted in some way. Another solution is to
+coupled the two equations will be. This can be intuitively seen    use quantum kernel methods, where loss corresponds to the
+considering |λ1| ≥|λ2|, leading to larger contribution of u2 into    overlap between quantum feature states. Choosing a suitable
+the equation for du1/dx derivative than u1, and vice versa.        loss function in this case is an important point to consider in
+  To move from considering one diﬀerential equation to a    the future.
+system of equations we need to encode multiple functions us-    We deﬁne the problem setting parameters to λ1 = 5, λ2 = 3
+ing quantum registers as described in the Sec. III Methods.    and initial conditions to u1,0 =  0.5,  u2,0 =  0. We set up
+For this speciﬁc example we choose a simple parallel encod-    the training scheme as in Diﬀerential equation example
+ing, where separate cost functions and ansatze are considered.    subsection using a  six-qubit  register,  cost choice of  to-
+In this case each function has a separate set of parameters to     tal magnetization in the Z direction for both u1 and u2,
+be optimized. The loss is changed accordingly to include in-    hardware-eﬃcient  variational ansatz with depth d =  5,
+formation on separate contributions from two coupled diﬀer-   Adam optimizer with learning rate 0.02, and feature map
+ential equation that are optimized simultaneously. We encode    choice of the Chebyshev tower feature map. We test the
+=== PAGE 15 ===
+                                                                                                    15
+
+  (a)                                                                          (b)                                  (c)
+                                                                                                       1    (t)                 1    (x)
+                                                                                                       2  T(t)                 2  T(x)             3                   convergent-divergent nozzle                                                                                                       3                     3                                                                                                                                          V(t)                       V(x)
+ subsonic                                                supersonic  0                         2
+                                                                                                             1
+
+
+         x = 0                                    x = 1                                                                                2
+                                                                                                             3
+                                                                                                                                                1
+
+
+
+
+FIG. 9: Quasi-1d ﬂuid dynamics. (a) We consider an example of ﬂuid dynamics problem corresponding to a convergent-divergent nozzle.
+The air ﬂows from converging part of the nozzle (x < 0.5), passes through the throat placed symmetrically in the middle, and exits to diverging
+part (x > 0.5). (b) System variables [density ρ(t), temperature T(t), and velocity V(t)] are shown as functions of time, near the centre of the
+nozzle at x0 = 0.4. For clarity, we label the corresponding curves by 1, 2, and 3. (c) Steady state solutions are plotted as functions of the spatial
+dimension x, with the same labelling.
+
+
+
+performance for the three boundary evaluation types: pinned     in the form
+boundary, ﬂoating boundary, and optimized boundary. The
+                                                                 ∂(ρvx)                       ∂τxx   ∂τyx   ∂τzxresults are shown in Fig. 8.  The pinned and optimized         + ∇· (ρvxV) = −∂p +    +    +    + ρfx,
+boundary handlers perform similarly, slowly converging to         ∂t                ∂x   ∂x    ∂y     ∂z
+                                                                                                                      (37)the analytical solution u1,2(x) within 250 iterations [Fig. 8(a)].
+The two approaches have similar convergence in terms of       ∂(ρvy)                       ∂τxy   ∂τyy   ∂τzy                                                + ∇· (ρvyV) = −∂p +    +    +    + ρfy,
+the full loss [Fig. 8(b), dashed curves labelled by 1 and 5],         ∂t                 ∂y   ∂x    ∂y     ∂z
+but diﬀer in terms of quality of solution [Fig. 8(b), dashed                                                           (38)
+curves labelled by 2 and 6]. When using ﬂoating boundary
+                                                                   ∂(ρvz)                        ∂τxz   ∂τyz    ∂τzztype a function close to the true solution is obtained [with         + ∇· (ρvzV) = −∂p +    +    +    + ρ fz,
+                                                                        ∂t                  ∂z   ∂x    ∂y    ∂zLQ value of approximately 10−5, see curve 4 in Fig. 8(b)].
+                                                                                                                      (39)This diﬀerence in convergence rate is a result of boundary
+information having an impact on the loss, demanding the
+                                                      where (vx, vy, vz) are instantaneous velocities in the (x, y, z) di-
+matching  for  pinned and  optimized boundary  handlers,
+                                                                      rections, τ is the stress tensor,  f the body force per unit mass
+whereas the ﬂoating boundary automatically matches the
+                                                                 acting on the ﬂuid element, ρ the density, and p the pressure.
+initial  condition and no  loss boundary term  is needed.
+                                                      Here V is a velocity ﬁeld.
+The consequence of competing terms in the loss function
+                                                     The building blocks for the Navier-Stokes equations de-
+can be seen in the early oscillations of the full loss in Fig. 8(b).
+                                                                scribed above are the continuity equation for the density ρ
+                                                               subjected to energy conservation and the momentum conser-
+                                                                vation rules. Finally, as we use energy conservation, we can
+                                                                  rewrite equations in terms of one of the thermodynamic state
+  Fluid dynamics applications. An area where solvers for     functions, being temperature, or pressure, or enthalpy etc.
+complex diﬀerential equations are much required is ﬂuid dy-      While general by itself, Navier-Stokes equations are usu-
+namics [2]. In this case several outstanding models are hard     ally solved in relevant limiting cases.   Speciﬁcally,  this
+to tackle due to their nonlinear nature.  Examples include    can correspond  to space  reduction (2D, quasi-1D, 1D),
+Burger’s equation and Navier-Stokes equations. We concen-     isotropic/anisotropic media properties, and ﬂuid properties
+trate on the latter and show how one can approach them with    (viscous or inviscid ﬂow). The speciﬁc example we choose to
+the DQC solver. Navier-Stokes equations describe a ﬂow of     start with is the ﬂow through a convergent-divergent nozzle,
+incompressible ﬂuids. This highly nonlinear set of partial dif-    being a paradigmatic task in the aerospace industry [Fig. 9(a)]
+ferential equations is used to model ﬂuids, magnetoplasma,     [2, 142]. The Navier-Stokes equations can be rewritten for the
+turbulence etc. It is heavily used in the aerospace industry and     inviscid ﬂuid in quasi-1D approximation. They read [2, 142]
+weather forecasting.  It can be derived from general princi-
+                                                           ∂ρ                ∂(ln A)    ∂ρples. Namely, we consider ﬂuid motion that obeys Newton’s           = −ρ∂V −ρV    −V                  (40)                                                                            ∂t      ∂x       ∂x      ∂x,law and we simply track the ﬂuid mass passing through a (in-
+ﬁnitesimal) volume.                                         ∂T     ∂T          ∂V     ∂(ln A) !                                                  = −V   −(γ −1)T    + V              ,     (41)
+                                                                             ∂t      ∂x           ∂x      ∂x
+                                                      ∂V
+                                                  = −V                                                             ∂V −1  ∂T + T ∂ρ ! ,               (42)
+  The general form Navier-Stokes equation can be presented              ∂t      ∂x   γ  ∂x   ρ ∂x
+=== PAGE 16 ===
+                                                                                                    16
+
+
+                                                                                                                                                                        7(a)                         12                         3    (b)                                                               3,6    (c)
+                             3                                                                                                                                          8
+                             4                                                                                                             7                            9
+                             5                         6                                                      1                            9
+                                                                                                              2
+                             6                                                                                                              3
+                                                                                                              4
+                                                       4                                                      5
+                                                                                                              6                            8
+                                                       5
+                                                       2                                                                          2,5
+
+                                                       1                                                                          1,4
+
+
+
+
+FIG. 10: DQC-based solution for the Navier-Stokes convergent-divergent nozzle problem.  (a) Intermediate solution in training where
+dashed curves correspond to solutions drawn from trained DQC and solid curves to the true solution. Circuits are trained over twenty points
+in range (0, 0.4) (b) Final solution. Solid curves with labels 1, 2, and 3 show the true solutions for the density, temperature, and velocity,
+respectively. Dashed curves with labels 4, 5, and 6 show the DQC solutions for the density, temperature, and velocity, respectively. The DQC
+solution matches the known solution and also what would be physically expected. As the air goes through the nozzle it accelerates and cools
+down. (c) Full loss (LF, curve 7), quality of solution (LQ, curve 8), and diﬀerential loss (LD, curve 9) are shown as functions of the iteration
+number n j for the training resulting in solution (b).
+
+
+
+where Eq.  (40) corresponds  to  the  continuity  equation,    Immediately we observe  that each function  at the RHS
+Eq. (41) describes the energy conservation, and Eq. (42) stems    diverges at the point x  s.t.  T(x) = V(x)2.  This leads to
+from momentum conservation. A(x) corresponds to the spatial    singular behaviour and breaks classical solvers, including the
+shape of the nozzle, and is a function of the lateral coordinate    ones with stiﬀhandling. At the same time, full dynamical
+x. γ describes the ratio of speciﬁc heat capacities, and is equal    solution and its t →∞extrapolation are possible, shown in
+to 1.4 for the relevant case of air ﬂow. Here we used nondi-     Fig. 9(b,c) once the well-suited initial conditions (45)-(47)
+mensional variables [2].                                         are chosen allowing to avoid instability, as usually done in
+  We set the problem with nozzle shape                       computational ﬂuid dynamics [2, 142].
+
+           A(x) = 1 + 4.95(2x −1)2, 0 ≤x ≤1,        (43)
+                                     DQC solution. We proceed to solve the stationary system
+and for simplicity specify boundary conditions as                of Navier-Stokes equations for the convergent-divergent noz-
+                                                                    zle by constructing optimized DQC. We consider the case of
+    ρ(x = 0) = 1,  T(x = 0) = 1,  V(x = 0) = 0.1,    (44)                                                              subsonic-supersonic transition, where ﬂow velocity increases
+when solving the initial value problem for the steady-state     after the center of the nozzle and qualitative behaviour of other
+ﬂow. We also need to specify the initial conditions if solv-     state variables (temperature and density drop) is known. How-
+ing the dynamical problem. These are chosen as [2]               ever, getting the quantitative results is diﬃcult. We show that
+                                                                    derivative quantum circuits can ﬁnd solutions despite the chal-
+           ρ(x, t = 0) = 1 −0.944x,                     (45)    lenge for the classical solution for the continuous grid.
+          T(x, t = 0) = 1 −0.694x,                     (46)     To construct the solution we employ a two-stage optimiza-
+         V(x, t = 0) = (0.1 + 3.27x)T(x, t = 0)1/2.      (47)     tion approach, where the solution is ﬁrst obtained at smaller
+                                                                            x, and later generalized until the end of the nozzle.  For
+  Let us consider the stationary state problem represented    the circuit we again consider a six-qubit quantum register
+by Eqs. (40)-(42) with conditions above, and equate the time    with a Chebyshev quantum feature map, keeping in mind that
+derivatives to zero. Interestingly, when trying to solve the sys-    x ∈[0, 1). We choose the cost functions as a total magne-
+tem for the steady state solution using various classical meth-     tization ˆC = PNj=1 ˆZ j. As we consider three functions {ρ(x),
+ods, as for example implemented in Mathematica’s NDSolve,    T(x), V(x)}, three equations contribute to the loss function in
+the calculations do not converge. This proves to be challeng-    the combined manner. We use ﬂoating boundary handling,
+ing as the system is stiﬀ. Solutions may become unstable de-    where each curve is adjusted according to starting values, cho-
+pending on initial values, and speciﬁcally the input velocity.    sen as ρ(0) = 1, T(0) = 1, V(0) = 0.1. The variational ansatz
+To understand the problem, it is instructive to rewrite the sys-     is taken in the standard hardware eﬃcient form with d = 6
+tem of stationary Navier-Stokes equations in the form            depth. Adam is used as a classical optimizer, and the learning
+                                                                      rate is set to 0.01.
+              dρ   ρV2dx(ln A)
+             =                     ,                    (48)      At the ﬁrst stage we train DQC in the region (xmin, xmax) =
+              dx    T −V2
+                                                                               (0., 0.4), such that the circuit represents the region close to ini-
+             dT   TV2(γ −1)dx(ln A)              =                                 ,             (49)      tial point x = 0. As expected, in the subsonic region ﬂow ve-
+              dx       T −V2                              locity grows towards the middle of the nozzle, while temper-
+            dV              = −TVdx(ln A) .                   (50)     ature and density drop slowly [see Fig. 10(a), dashed curves
+              dx     T −V2                                 4, 5, 6]. The training is set for 20 equally distributed points
+=== PAGE 17 ===
+                                                                                                    17
+
+
+of x, with no prior regularization and using ﬂoating boundary.    ple a large spectral basis set of Chebyshev or Fourier poly-
+We optimize DQC for niter = 200 iterations for Adam with    nomials. We also showed how analytical circuit diﬀerentia-
+the learning rate of α = 0.01. We ﬁnd a high-quality solution     tion can be used to represent function derivatives appearing
+based on the gradient information in the imposed solution re-     in diﬀerential equations, and constructed loss functions which
+gion x < 0.4 shown in Fig. 10(a).                          aim to improve the prepared trial solution. This method opens
+  We proceed to search for the full solution that includes the    up a new way of solving general, complex, (non)linear sys-
+divergent nozzle part for x > 0.5 at the second training stage.    tems; as an example we presented solutions to the Navier-
+At this session we choose the grid of 40 points, where two    Stokes equations, but the same method can be applied across
+regions of (0, 0.4) and (0.6, 0.9) with 20 points each are used.     all disciplines where diﬀerential equations arise.  Although
+As we discussed before, the key problem of the convergent-   we showed how the method works explicitly for a spectral
+divergent nozzle in the subsonic-supersonic transition case is     (global) treatment, the scheme is general and one may in-
+the divergence around the middle of the nozzle. This causes    stead consider a digital quantum feature map which allows
+a major problem to classical solvers, that are unable to ﬁnd    a grid-based (local) treatment. We did not yet consider the
+a steady state solution directly. Divergent contributions from    impact of noise on the algorithm performance; however, it is
+this region also impact the loss function, and makes training    well-known that the analytical gradients, which are used here,
+complicated. However, by excluding the region around the    are much less susceptible to noise than numerical gradients
+nozzle throat, (0.4, 0.6), in the training we alleviate this prob-    evaluated on variational quantum circuits. We expect recent
+lem. Proceeding with the use of the same ansatz and boundary    developments in noisy black-box optimization algorithms for
+handing, we feed the variational angles from stage 1 as initial   NISQ application would perform well in this method, as well
+parameters for stage 2 training. We employ weak regulariza-    as error mitigation techniques. The presented quantum feature
+tion to ensure that the required subsonic-supersonic solution   maps are a good start, but could be improved upon further,
+is made. Namely, we use 20 points in the (0, 0.4) region bene-    where the goal is to ﬁnd eﬃcient representations of functions.
+ﬁting from the previously found solution (in general we have    This choice will likely be problem-speciﬁc and in some cases
+access to as many points as we need), and also add 5 points in    problem-motivated, allowing to make optimal use of (quan-
+the x ∈(0.6, 0.9) region representing weak bias towards super-    tum) resources. A good choice of variational ansatz is crucial
+sonic solution type. The training is performed for niter = 600,     to loss function convergence success and speed. We presented
+learning rate of α = 0.005, and regularization switch-oﬀfunc-   some examples, but an active area of research is to improve
+tion ζ(n j) set to be removed smoothly around nj =  150.    upon these using for example adaptively growing circuits or
+The full solution is shown in Fig. 10(b).  It converges to the    stronger interplay with intelligent classical optimization pro-
+expected long-time behavior for the system, where function     tocols, such as Bayesian optimization.
+derivatives from DQC match the nonlinear contributions. The
+                                             An important question to discuss is the potential of achiev-
+increase of speed for the air ﬂow in the convergent part and
+                                                              ing a quantum advantage, speciﬁcally for solving diﬀerential
+decrease of temperature and density is reproduced quantita-
+                                                              equations with a hybrid workﬂow. Similarly to classical ML,
+tively. The details of optimization run can be inferred from
+                                                                    variational quantum machine learning uses quantum circuits
+the loss plotted in Fig. 10(c). This shows a distinct region in
+                                                               as universal function approximators [173]. While VQA inher-
+the presence of regularization (nj < 150), where quality of
+                                                                  ently remains a heuristic, similarly to machine learning-type
+solution LQ remains low [Fig. 10(c), curve 8], while the full
+                                                             approaches, they are highly suitable to problems where tra-
+loss LF improves [Fig. 10(c), curve 7] thanks to regularization                                                                     ditional methods fail or are ineﬃcient. For instance, classical
+contribution and weakly improved derivative contribution LD
+                                                               neural networks based on Fourier representation were recently
+[Fig. 10(c), curve 9]. For the region with switched oﬀregular-
+                                                   shown to outperform traditional PDE solvers by three orders
+ization we observe steady improvement of all metrics, show-
+                                                               of magnitude [147]. This can be pushed further by quantum
+ing that DQCs are eﬃciently trained to approach true solution,
+                                                                    variational protocols. For expressive feature maps, the repre-
+also evidenced by LQ decrease. Notably, as compared to many
+                                                                  sentation power of quantum circuits grows superpolynomially
+methods relying on sparse discretization of x, we have found
+                                                           with the number of qubits. In classiﬁcation tasks this leads to
+the solution along the full nozzle length.
+                                                               increased accuracy even for small networks [174]. For dif-
+                                                                       ferential equations, rich basis sets allow for accurate solution
+                                                                 representation in a memory-frugal form — a saved list of op-
+               V. SUMMARY AND OUTLOOK                  timal circuit parameters for a given DQC structure. Having
+                                                                 the expressibility advantage, the success of operation then de-
+  We presented a general framework for solving general    pends on: 1) trainability of quantum circuits; 2) absolute op-
+(systems of) nonlinear diﬀerential equations using diﬀeren-     eration rates. The former is well-known to suﬀer from a phe-
+tiable quantum circuits on gate-based quantum hardware. The   nomenon commonly referred to as barren plateaus. That can
+method makes use of quantum feature map circuits to encode    be mitigated by a carefully chosen circuit structure, as recently
+function values into a latent space. This allows us to consider   shown for convolutional quantum circuits [115, 175]. The lat-
+spectral decompositions of the trial solutions to diﬀerential     ter requires quantum hardware speciﬁcations with high sam-
+equations. We showed how our method can accurately repre-    pling rates and a low-latency hybrid operational mode. In the
+sent nonlinear solutions, using the high-dimensional Hilbert   pre-FTQC era with large-scale quantum devices, yet limited
+space of a qubit register.  For this we exploit as an exam-    by noise, parallel operation may oﬀer this possibility.
+=== PAGE 18 ===
+                                                                                                    18
+
+
+   Finally, diﬀerential quantum circuits can enjoy another type    diﬀerentiated version at all points (using linear combinations
+of computational advantage related to training.  In this pa-    of unitaries), and loss can be measured from quantum ker-
+per we considered capturing the function similarity through    nel estimation. This was used recently to speed up generative
+a loss function based on a cost Hamiltonian suitable for near-    modelling with quantum batch training [124]. We will fur-
+term operation. Anticipating the appearance of quantum de-     ther investigate that approach in future work. To conclude, we
+vices with deep quantum circuits and problems with multi-    suggest that the DQC method could be a potential contender
+dimensional functions, we consider possible strategies for par-     for exploring the boundaries of quantum advantage in indus-
+allel DQC training at diﬀerent nodes of the training grid. One     trially relevant problems, and expect many improvements can
+possibility is training of diﬀerential equation solutions as a su-    be made building on the presented idea.
+perposition of quantum circuits (feature maps applied for dif-      Acknowledgement. We thank Benno Broer for useful dis-
+ferent values of variables). The DE is then solved by matching    cussions on the subject and reading the manuscript.
+
+
+
+
+
+   [1] G. F. Simmons, Diﬀerential Equations with Applications and      [19] S. Lloyd, S. Garnerone, and P. Zanardi, Quantum algorithms
+      Historical Notes (McGraw-Hill, Inc., 1972).                              for topological and geometric analysis of data, Nature Com-
+   [2] J. D. Anderson, Jr., Computational Fluid Dynamics: The Ba-         mun. 7, 10138 (2016).
+       sics with Applications (McGraw-Hill, Inc., Singapore, 1995).       [20] V. Dunjko, J. M. Taylor, and H. J. Briegel, Quantum-Enhanced
+   [3] J. C. Butcher, Numerical Methods for Ordinary Diﬀerential         Machine Learning, Phys. Rev. Lett. 117, 130501 (2016).
+      Equations (John Wiley & Sons, Ltd., Chichester, UK; 2016).       [21] M. Schuld,  I. Sinayskiy, and F. Petruccione, Prediction by
+   [4] J. P. Boyd, Chebyshev and Fourier Spectral Methods, (Dover            linear regression on a quantum computer, Phys. Rev. A 94,
+       Publications, Inc., Mineola, NY; second edition, 2001).               022342 (2016).
+   [5] E. Hairer and G. Wanner, Solving ordinary diﬀerential equa-      [22] Nana Liu and P. Rebentrost, Quantum machine learning for
+       tions II: Stiﬀand diﬀerential-algebraic problems (Springer-         quantum anomaly detection, Phys. Rev. A 97, 042315 (2018).
+      Verlag, Berlin, Germany; second edition, 1996).                   [23] P. Rebentrost, M. Schuld, L. Wossnig, F. Petruccione and
+   [6] C. W. Gear, Numerical Solution of Ordinary Diﬀerential           S. Lloyd, Quantum gradient descent and Newton’s method
+      Equations:  Is There Anything Left to Do?, SIAM Rev. 23,            for constrained polynomial optimization, New J. Phys. 21,
+     10 (1981).                                                  073023 (2019).
+   [7] M. A. Nielsen and I. L. Chuang, Quantum Computation and      [24] C. Blank, D. K. Park, June-Koo Kevin Rhee, and F. Petruc-
+     Quantum Information, (Cambridge University Press, New           cione, Quantum classiﬁer with tailored quantum kernel, npj
+      York, USA, 2010).                                         Quantum Inf. 6, 41 (2020).
+   [8] A. Montanaro, Quantum algorithms: an overview, npj Quan-      [25] S. K. Leyton and T. J. Osborne, A quantum algorithm to solve
+     tum Inf. 2, 15023 (2016).                                              nonlinear diﬀerential equations, arXiv:0812.4423 [quant-ph]
+   [9] A. W. Harrow, A. Hassidim, and S. Lloyd, Quantum Algo-      [26] Yudong Cao, A. Daskin, S. Frankel, and S. Kais, Quantum Cir-
+      rithm for Linear Systems of Equations, Phys. Rev. Lett. 103,            cuit Design for Solving Linear Systems of Equations, Molec-
+     150502 (2009).                                                            ular Physics 110, 1675 (2012).
+ [10] A. M. Childs, R. Kothari, and R. D. Somma, Quantum algo-      [27] D. W. Berry, High-order quantum algorithm for solving linear
+      rithm for systems of linear equations with exponentially im-            diﬀerential equations, J. Phys. A: Math. Theor. 47, 105301
+      proved dependence on precision, SIAM Journal on Computing           (2014).
+      46, 1920 (2017).                                                 [28] A. Montanaro and S. Pallister, Quantum algorithms and the
+ [11] L. Wossnig, Zhikuan Zhao, and A. Prakash, Quantum Linear           ﬁnite element method, Phys. Rev. A 93, 032324 (2016).
+     System Algorithm for Dense Matrices, Phys. Rev. Lett. 120,      [29] D. W. Berry, A. M. Childs, A. Ostrander, and Guoming Wang,
+     050502 (2018).                                            Quantum algorithm for linear diﬀerential equations with expo-
+ [12] Y. Subasi, R. D. Somma, and D. Orsucci, Quantum Algo-            nentially improved dependence on precision, Commun. Math.
+      rithms for Systems of Linear Equations Inspired by Adiabatic           Phys. 356, 1057 (2017).
+     Quantum Computing, Phys. Rev. Lett. 122, 060504 (2019).        [30] P. C. S. Costa, S. Jordan, and A. Ostrander, Quantum al-
+ [13] Lin Lin, Yu Tong, Optimal quantum eigenstate ﬁltering with          gorithm for simulating the wave equation, Phys. Rev. A 99,
+      application to solving quantum linear systems, Quantum 4,         012323 (2019).
+     361 (2020).                                                      [31] A. M.  Childs,  Jin-Peng  Liu,  and A.  Ostrander,  High-
+ [14] A. Carrera Vazquez, R. Hiptmair, and S. Woerner, Enhancing           precision quantum algorithms for partial diﬀerential equa-
+      the Quantum Linear Systems Algorithm using Richardson Ex-             tions, arXiv:2002.07868 [quant-ph]
+       trapolation, arXiv:2009.04484 [quant-ph]                          [32] Shengbin Wang, Zhimin Wang, Wendong Li, Lixin Fan, Guo-
+ [15] J. Biamonte, P. Wittek, N. Pancotti, P. Rebentrost, N. Wiebe,          long Cui, Zhiqiang Wei, and Yongjian Gu, A quantum Poisson
+     and S. Lloyd, Quantum machine learning, Nature (London)           solver implementable on NISQ devices, arXiv:2005.00256
+      549, 195 (2017).                                                      [quant-ph]
+ [16] M. Schuld, I. Sinayskiy, and F. Petruccione, An introduction      [33] N. Linden, A. Montanaro, and Changpeng Shao, Quan-
+       to quantum machine learning, Contemp. Phys. 56, 172 (2015).         tum vs. classical algorithms for solving the heat equation,
+ [17] S. Lloyd, M. Mohseni, and P. Rebentrost, Quantum principal          arXiv:2004.06516 [quant-ph]
+     component analysis, Nature Physics 10, 631 (2014).               [34] A. M. Childs and Jin-Peng Liu, Quantum spectral methods for
+ [18] P. Rebentrost, M. Mohseni, and S. Lloyd, Quantum Support            diﬀerential equations, Commun. Math. Phys. 75, 1427 (2020).
+      Vector Machine for Big Data Classiﬁcation, Phys. Rev. Lett.      [35] V. Giovannetti, S. Lloyd, and L. Maccone, Quantum Random
+      113, 130503 (2014).                                             Access Memory, Phys. Rev. Lett. 100, 160501 (2008).
+=== PAGE 19 ===
+                                                                                                   19
+
+
+[36] A. Scherer, B. Valiron, Siun-Chuon Mau, S. Alexander, E. van          oxide Dimer Rearrangement on Noisy Quantum Devices, J.
+    den Berg, and T. E. Chapuran, Concrete resource analysis of           Phys. Chem. A 125, 1827 (2021).
+     the quantum linear system algorithm used to compute the elec-      [52] Google AI Quantum and Collaborators,  F. Arute  et  al.,
+     tromagnetic scattering cross section of a 2D target, Quantum          Hartree-Fock on a superconducting qubit quantum computer,
+      Inf. Process. 16, 60 (2017).                                          Science 369, 1084 (2020).
+[37] J. Preskill, Quantum Computing in the NISQ era and beyond,      [53] B. T. Gard, L. Zhu, G. S. Barron, N.  J. Mayhall, S. E.
+    Quantum 2, 79 (2018).                                        Economou, and E. Barnes, Eﬃcient symmetry-preserving
+[38] F. Arute et al., Quantum supremacy using a programmable su-             state preparation circuits for the variational quantum eigen-
+     perconducting processor, Nature (London) 574, 505 (2019).             solver algorithm, npj Quantum Inf. 6, 10 (2020).
+[39] S. McArdle, S. Endo, A. Aspuru-Guzik, S. C. Benjamin, and      [54] H. R. Grimsley, S. E. Economou, E. Barnes, and N. J. Mayhall,
+    Xiao Yuan, Quantum computational chemistry, Rev. Mod.        An adaptive variational algorithm for exact molecular simu-
+     Phys. 92, 15003 (2020).                                                    lations on a quantum computer, Nature Commun. 10, 3007
+[40] Y. Cao, J. Romero, J. P. Olson, M. Degroote, P. D. Johnson, M.           (2019).
+     Kieferov´a, I. D. Kivlichan, T. Menke, B. Peropadre, N. P. D.      [55] H. L. Tang, V. O. Shkolnikov, G. S. Barron, H. R. Grimsley,
+    Sawaya, Sukin Sim, L. Veis, and A. Aspuru-Guzik, Quantum         N. J. Mayhall, E. Barnes, and S. E. Economou, qubit-ADAPT-
+     Chemistry in the Age of Quantum Computing, Chem. Rev.        VQE: An  adaptive algorithm  for  constructing hardware-
+     119, 10856 (2019).                                               eﬃcient ansatze on a quantum processor, arXiv:1911.10205
+[41] V. E. Elfving, B. W. Broer, M. Webber, J. Gavartin, M. D.           [quant-ph]
+     Halls, K. P. Lorton, and A. Bochevarov, How will quantum      [56] D. Claudino,  J. Wright, A. J. McCaskey, and T. S. Hum-
+     computers provide an industrially relevant computational ad-             ble, Benchmarking adaptive variational quantum eigensolvers,
+     vantage in quantum chemistry?, arXiv:2009.12472 [quant-ph]           Front. Chem. 8, 606863 (2020).
+[42] A. Peruzzo, J. McClean, P. Shadbolt, M.-H. Yung, X.-Q. Zhou,      [57] W. J. Huggins, J. McClean, N. Rubin, Z. Jiang, N. Wiebe,
+      P. J. Love, A. Aspuru-Guzik, and J. L. O’Brien, A variational         K. B. Whaley, and R. Babbush, Eﬃcient and noise resilient
+     eigenvalue solver on a photonic quantum processor, Nature          measurements for quantum chemistry on near-term quantum
+    Comm. 5, 4213 (2014).                                             computers, npj Quantum Inf. 7, 23 (2021).
+[43] J. McClean, J. Romero, R. Babbush, and A. Aspuru-Guzik,      [58] Tzu-Ching Yen, V. Verteletskyi, and A. F. Izmaylov, Measur-
+    The theory of variational hybrid quantum-classical algorithms,           ing All Compatible Operators in One Series of Single-Qubit
+   New J. Phys. 18, 023023 (2016).                                 Measurements Using Unitary Transformations, J. Chem. The-
+[44] P. J. J. O’Malley, R. Babbush, I. D. Kivlichan, J. Romero, J.          ory Comput. 16, 2400 (2020).
+     R. McClean, R. Barends et al., Scalable Quantum Simulation      [59] J. M. K¨ubler, A. Arrasmith, L. Cincio, and P. J. Coles, An
+     of Molecular Energies, Phys. Rev. X 6, 031007 (2016).                Adaptive Optimizer for Measurement-Frugal Variational Al-
+[45] A. Kandala, A. Mezzacapo, K. Temme, M. Takita, M. Brink,           gorithms, Quantum 4, 263 (2020).
+       J. M. Chow, and J. M. Gambetta, Hardware-eﬃcient varia-      [60] K. M. Nakanishi, K. Mitarai, and K. Fujii, Subspace-search
+      tional quantum eigensolver for small molecules and quantum            variational quantum eigensolver for excited states, Phys. Rev.
+     magnets, Nature (London) 549, 242 (2017).                          Research 1, 033062 (2019).
+[46] J. I. Colless, V. V. Ramasesh, D. Dahlen, M. S. Blok, M. E.      [61] M. Metcalf, N. P. Bauman, K. Kowalski, and W. A. de Jong,
+     Kimchi-Schwartz, J. R. McClean, J. Carter, W. A. de Jong, and          Resource Eﬃcient Chemistry on Quantum Computers with
+       I. Siddiqi, Computation of Molecular Spectra on a Quantum           the Variational Quantum Eigensolver and The Double Unitary
+     Processor with an Error-Resilient Algorithm, Phys. Rev. X 8,          Coupled-Cluster approach, J. Chem. Theory Comput. 16, 10,
+    011021 (2018).                                              6165 (2020).
+[47] C. Kokail, C. Maier, R. van Bijnen, T. Brydges, M. K. Joshi, P.      [62] N. P. Bauman, J. Chl´adek, L. Veis, J. Pittner, and K. Kowalski,
+     Jurcevic, C. A. Muschik, P. Silvi, R. Blatt, C. F. Roos, and P.            Variational Quantum Eigensolver for Approximate Diagonal-
+      Zoller, Self-Verifying Variational Quantum Simulation of the            ization of Downfolded Hamiltonians using Generalized Uni-
+     Lattice Schwinger Model, Nature (London) 569, 355 (2019).             tary Coupled Cluster Ansatz, Quantum Sci. Technol. accepted
+[48] M. Ganzhorn, D. J. Egger, P. Barkoutsos, P. Ollitrault, G. Salis,           (2021); arXiv:2011.01985
+    N. Moll, M. Roth, A. Fuhrer, P. Mueller, S. Woerner, I. Tav-      [63] T. E. O’Brien, B. Senjean, R. Sagastizabal, X. Bonet-Monroig,
+      ernelli, and S. Filipp, Gate-Eﬃcient Simulation of Molecular         A. Dutkiewicz, F. Buda, L. DiCarlo, and L. Visscher, Calcu-
+     Eigenstates on a Quantum Computer, Phys. Rev. Applied 11,            lating energy derivatives for quantum chemistry on a quantum
+    044092 (2019).                                                    computer, npj Quantum Inf. 5, 113 (2019).
+[49] A. J. McCaskey, Z. P. Parks, J. Jakowski, S. V. Moore, T. Mor-      [64] R. M. Parrish, E. G. Hohenstein, P. L. McMahon, and T.
+       ris, T. S. Humble, and R. C. Pooser, Quantum Chemistry as a              J. Martinez, Quantum Computation of Electronic Transitions
+    Benchmark for Near-Term Quantum Computers, npj Quantum          Using a Variational Quantum Eigensolver, Phys. Rev. Lett.
+      Inf. 5, 99 (2019).                                                   122, 230401 (2019).
+[50] Y. Nam, J.-S. Chen, N. C. Pisenti, K. Wright, C. Delaney, D.      [65] S. Yalouz, B. Senjean, J. G¨unther, F. Buda, T. E. O’Brien,
+     Maslov, K. R. Brown, S. Allen, J. M. Amini, J. Apisdorf, K.          and L. Visscher, A state-averaged orbital-optimized hybrid
+    M. Beck, A. Blinov, V. Chaplin, M. Chmielewski, C.Collins,           quantum-classical algorithm for a democratic description of
+     S. Debnath, A. M. Ducore, K. M. Hudek, M. Keesan, S.          ground and excited states, Quantum Sci. Technol. 6, 024004
+    M. Kreikemeier, J. Mizrahi, P. Solomon, M. Williams, J. D.           (2021).
+    Wong-Campos, C. Monroe, and J. Kim, Ground-state energy      [66] V. E. Elfving, J. A. G´amez, and C. Gogolin, Simulating quan-
+     estimation of the water molecule on a trapped ion quantum         tum chemistry in the restricted Hartree-Fock space on a qubit-
+     computer, npj Quantum Inf. 6, 33 (2020).                            based quantum computing device, Phys. Rev. A 103, 032605
+[51] Qi Gao, Hajime Nakamura, T. P. Gujarati, G. O. Jones, J.           (2021).
+     E. Rice, S. P. Wood, M. Pistoia, J. M. Garcia, and N. Ya-      [67] M. Benedetti, E. Lloyd, S. Sack, and M. Fiorentini, Parameter-
+    mamoto, Computational Investigations of the Lithium Super-           ized quantum circuits as machine learning models, Quantum
+=== PAGE 20 ===
+                                                                                                   20
+
+
+      Sci. Technol. 4, 043001 (2019).                                   [89] S. S. Mendelson, R. W. Strand, G. B. Oldaker IV, and J.
+[68] A. Perdomo-Ortiz, M. Benedetti, J. Realpe-Gomez, and R.        M. Farinholt, Quantum-Assisted Clustering Algorithms for
+     Biswas, Opportunities and challenges for quantum-assisted         NISQ-Era Devices, arXiv:1904.08992 [quant-ph]
+    machine learning in near-term quantum computers, Quantum      [90] V. Dunjko and H. J. Briegel, Machine learning & artiﬁcial in-
+      Sci. Technol. 3, 030502 (2018).                                           telligence in the quantum domain: a review of recent progress,
+[69] W. Huggins, P. Patel, K. B. Whaley, and E. M. Stoudenmire,          Rep. Prog. Phys. 81, 074001 (2018).
+    Towards Quantum Machine Learning with Tensor Networks,      [91] A. A. Melnikov, H. Poulsen Nautrup, M. Krenn, V. Dunjko, M.
+    Quantum Sci. Technol. 4, 024001 (2019).                                Tiersch, A. Zeilinger, and H. J. Briegel, Active learning ma-
+[70] M. Cerezo, A. Sone, T. Volkoﬀ, L. Cincio, and P. J. Coles,           chine learns to create new quantum experiments, PNAS 115,
+     Cost-Function-Dependent Barren Plateaus in Shallow Quan-         1221 (2018).
+    tum Neural Networks, Nature Commun. 12, 1791 (2021).          [92] F. Albarran-Arriagada,  J. C. Retamal, E. Solano, and L.
+[71] L.  Lamata,  Quantum  machine  learning  and  quantum          Lamata, Measurement-based adaptation protocol with quan-
+     biomimetics: A perspective, Mach. Learn.: Sci. Technol. 1,         tum reinforcement learning, Phys. Rev. A 98, 042315 (2018).
+    033002 (2020).                                                   [93] A. A. Melnikov, P. Sekatski, and N. Sangouard, Setting Up
+[72] E. Farhi and H. Neven, Classiﬁcation with Quantum Neu-          Experimental Bell Tests with Reinforcement Learning, Phys.
+      ral Networks on Near Term Processors, arXiv:1802.06002          Rev. Lett. 125, 160401 (2020).
+     [quant-ph]                                                       [94] J. Walln¨ofer, A. A. Melnikov, W. D¨ur, and H. J. Briegel, Ma-
+[73] K. Mitarai, M. Negoro, M. Kitagawa, and K. Fujii, Quantum           chine Learning for Long-Distance Quantum Communication,
+      circuit learning, Phys. Rev. A 98, 032309 (2018).               PRX Quantum 1, 010301 (2020).
+[74] V. Havliˇcek, A. D. Corcoles, K. Temme, A. W. Harrow, A.      [95] J. Olivares-Sanchez, J. Casanova, E. Solano, and L. Lamata,
+     Kandala, J. M. Chow, and J. M. Gambetta, Supervised learn-          Measurement-Based Adaptation Protocol with Quantum Re-
+     ing with quantum-enhanced feature spaces, Nature (London)          inforcement Learning in a Rigetti Quantum Computer, Quan-
+     567, 209 (2019).                                            tum Rep. 2, 293 (2020).
+[75] M. Schuld, A. Bocharov, K. M. Svore, and N. Wiebe, Circuit-      [96] J. M. Kreula, S. R. Clark, and D. Jaksch, Non-linear quantum-
+     centric quantum classiﬁers, Phys. Rev. A 101, 032308 (2020).            classical scheme to simulate non-equilibrium strongly cor-
+[76] Yudai Suzuki, Hiroshi Yano, Qi Gao, Shumpei Uno, Tomoki            related fermionic many-body dynamics, Sci. Rep. 6, 32940
+     Tanaka, Manato Akiyama, and Naoki Yamamoto, Analysis           (2016).
+    and synthesis of feature map for kernel-based quantum clas-      [97] C. Cirstoiu, Z. Holmes, J. Iosue, L. Cincio, P. J. Coles, and
+      siﬁer, Quantum Machine Intelligence 2, 1 (2020).                    A. Sornborger, Variational Fast Forwarding for Quantum Sim-
+[77] H. Yano, Y. Suzuki, R. Raymond, and N. Yamamoto, Eﬃcient            ulation Beyond the Coherence Time, npj Quantum Inf. 6, 82
+     Discrete Feature Encoding for Variational Quantum Classiﬁer,           (2020).
+     arXiv:2005.14382 [quant-ph]                                     [98] S. Endo, Jinzhao Sun, Ying Li, S. C. Benjamin, and Xiao
+[78] Yuxuan Du, Min-Hsiu Hsieh, Tongliang Liu, Dacheng Tao,          Yuan, Variational Quantum Simulation of General Processes,
+    and Nana Liu, Quantum noise protects quantum classiﬁers           Phys. Rev. Lett. 125, 010501 (2020).
+     against adversaries, arXiv:2003.09416 [quant-ph]                  [99] D. Paulson, L. Dellantonio, J. F. Haase, A. Celi, A. Kan, A.
+[79] Jin-Guo Liu and Lei Wang, Diﬀerentiable Learning of Quan-           Jena, C. Kokail, R. van Bijnen, K. Jansen, P. Zoller, and C. A.
+    tum Circuit Born Machine, Phys. Rev. A 98, 062324 (2018).           Muschik, Towards simulating 2D eﬀects in lattice gauge theo-
+[80] S. Lloyd and C. Weedbrook, Quantum Generative Adversarial             ries on a quantum computer, arXiv:2008.09252 [quant-ph]
+     Learning, Phys. Rev. Lett. 121, 040502 (2018).                  [100] J. J. Meyer, J. Borregaard, and J. Eisert, A variational toolbox
+[81] Jinfeng Zeng, Yufeng Wu, Jin-Guo Liu, Lei Wang, and Jiang-            for quantum multi-parameter estimation, arXiv:2006.06303
+     ping Hu, Learning and inference on generative adversarial           [quant-ph]
+    quantum circuits, Phys. Rev. A 99, 052306 (2019).               [101] Yingkai  Ouyang,  N.  Shettell,  and  D. Markham,  Ro-
+[82] G. Verdon, M. Broughton, and J. Biamonte, A quantum al-           bust quantum metrology  with  explicit symmetric  states,
+     gorithm to train neural networks using low-depth circuits,          arXiv:1908.02378 [quant-ph]
+     arXiv:1712.05304 [quant-ph]                                   [102] B. Koczor, S. Endo, T. Jones, Y. Matsuzaki, and S. C. Ben-
+[83] M. Benedetti, E. Grant, L. Wossnig, and S. Severini, Adver-           jamin, Variational-state quantum metrology, New J. Phys. 22,
+      sarial quantum circuit learning for pure state approximation,         083038 (2020).
+   New J. Phys. 21, 043023 (2019).                               [103] M. Schuld, V. Bergholm, C. Gogolin, J. Izaac, and N. Killo-
+[84] M. Benedetti, D. Garcia-Pintos, O. Perdomo, V. Leyton-            ran, Evaluating analytic gradients on quantum hardware, Phys.
+     Ortega, Yunseong Nam, and A. Perdomo-Ortiz, A genera-          Rev. A 99, 032331 (2019).
+      tive modeling approach for benchmarking and training shal-     [104] K. Mitarai, Y. O. Nakagawa, and W. Mizukami, Theory of an-
+    low quantum circuits, npj Quantum Inf. 5, 45 (2019).                      alytical energy derivatives for the variational quantum eigen-
+[85] C. Zoufal, A. Lucchi, and S. Woerner, Quantum Generative            solver, Phys. Rev. Res. 2, 013129 (2020).
+     Adversarial Networks for learning and loading random distri-     [105] R. M.  Parrish,  E. G. Hohenstein,  P. L. McMahon, and
+     butions, npj Quantum Inf. 5, 103 (2019).                                 T.  J. Martinez, Hybrid Quantum/Classical Derivative The-
+[86] J. Romero and A. Aspuru-Guzik, Variational quantum gener-           ory:  Analytical Gradients and Excited-State Dynamics for
+      ators: Generative adversarial quantum machine learning for           the Multistate Contracted Variational Quantum Eigensolver,
+     continuous distributions, Adv. Quantum Technol. 4, 2000003          arXiv:1906.08728 [quant-ph]
+     (2021).                                                       [106] S. McArdle, T. Jones, S. Endo, Ying Li, S. Benjamin, and
+[87] B. Coyle, D. Mills, V. Danos, and E. Kasheﬁ, The Born         Xiao Yuan, Variational ansatz-based quantum simulation of
+     supremacy: quantum advantage and training of an Ising Born          imaginary time evolution, npj Quantum Inf. 5, 75 (2019).
+     machine, npj Quantum Inf. 6, 60 (2020).                        [107] J. Stokes, J. Izaac, N. Killoran, and G. Carleo, Quantum Nat-
+[88] J. S. Otterbach et al., Unsupervised Machine Learning on a            ural Gradient, Quantum 4, 269 (2020).
+    Hybrid Quantum Computer, arXiv:1712.05771 [quant-ph]        [108] N. Yamamoto, On the natural gradient for variational quantum
+=== PAGE 21 ===
+                                                                                                    21
+
+
+       eigensolver, arXiv:1909.05074 [quant-ph]                            Rev. A 98, 062339 (2018).
+[109] B. Koczor and S. C. Benjamin, Quantum natural gradient gen-     [129] S. McArdle, Xiao Yuan, and S. Benjamin, Error-Mitigated
+       eralised to non-unitary circuits, arXiv:1912.08660 [quant-ph]            Digital Quantum Simulation, Phys. Rev. Lett. 122, 180501
+[110] R. Sweke, F. Wilde, J. Meyer, M. Schuld, P. K. F¨ahrmann, B.           (2019).
+      Meynard-Piganeau, and J. Eisert, Stochastic gradient descent     [130] M. Otten and S. K. Gray, Accounting for errors in quantum
+       for hybrid quantum-classical optimization, Quantum 4, 314           algorithms via individual error reduction, npj Quantum Inf. 5,
+      (2020).                                                     11 (2019).
+[111] B. Koczor and S. C. Benjamin, Quantum Analytic Descent,     [131] D. Bondarenko and P. Feldmann, Quantum Autoencoders to
+      arXiv:2008.13774 [quant-ph]                                      Denoise Quantum Data, Phys. Rev. Lett. 124, 130502 (2020).
+[112] G. Verdon, J. Pye, and M. Broughton, A Universal Training     [132] T. Giurgica-Tiron, Y. Hindy, R. LaRose, A. Mari, and W. J.
+      Algorithm for Quantum Deep Learning, arXiv:1806.09729          Zeng, Digital zero noise extrapolation for quantum error miti-
+      [quant-ph]                                                                gation, arXiv:2005.10921 [quant-ph]
+[113] K. Beer, D. Bondarenko, T. Farrelly, T. J. Osborne, R. Salz-     [133] Hsin-Yuan Huang,  K.  Bharti,  and  P.  Rebentrost,  Near-
+     mann, D. Scheiermann, and R. Wolf, Training deep quantum          term quantum algorithms for linear systems of equations,
+      neural networks, Nature Commun. 11, 808 (2020).                    arXiv:1909.07344 [quant-ph]
+[114] S. Garg and G. Ramakrishnan, Advances in Quantum Deep     [134] C. Bravo-Prieto, R. LaRose, M. Cerezo, Y. Subasi, L. Cin-
+      Learning: An Overview, arXiv:2005.04316 [quant-ph]                     cio, and  P.  J. Coles,  Variational Quantum Linear Solver,
+[115] Iris Cong, Soonwon Choi, and M. D. Lukin, Quantum convo-          arXiv:1909.05820 [quant-ph]
+       lutional neural networks, Nature Phys. 15, 1273 (2019).          [135] X. Xu, J. Sun, S. Endo, Y. Li, S. C. Benjamin, and X. Yuan,
+[116] M. Cerezo and P. J. Coles, Impact of Barren Plateaus on            Variational algorithms for linear algebra, arXiv:1909.03898
+      the Hessian and Higher Order Derivatives, arXiv:2008.07454           [quant-ph]
+      [quant-ph]                                                    [136] Chih-Chieh Chen, Shiue-Yuan Shiau, Ming-Feng Wu, and
+[117] Y. Herasymenko and T. E. O’Brien, A diagrammatic approach         Yuh-Renn Wu, Hybrid classical-quantum linear solver using
+       to variational quantum ansatz construction, arXiv:1907.08157          Noisy Intermediate-Scale Quantum machines, Sci. Rep. 9,
+      [quant-ph]                                                  16251 (2019).
+[118] A. Skolik, J. R. McClean, M. Mohseni, P. van der Smagt, and     [137] M. R. Perelshtein, A. I. Pakhomchik, A. A. Melnikov, A. A.
+     M. Leib, Layerwise learning for quantum neural networks,          Novikov, A. Glatz, G. S. Paraoanu, V. M. Vinokur, G. B. Leso-
+     Quantum Machine Intelligence 3, 5 (2021).                               vik, Advanced quantum supremacy using a hybrid algorithm
+[119] Sukin Sim,  J. Romero,  J. F. Gonthier, and A. A. Kunitsa,            for linear systems of equations, arXiv:2003.12770 [quant-ph]
+      Adaptive pruning-based optimization of parameterized quan-     [138] A. Borle, V. E. Elfving, and S. J. Lomonaco, Quantum Ap-
+     tum circuits, Quantum Sci. Technol. 6, 025019 (2021).                 proximate Optimization for Hard Problems in Linear Algebra,
+[120] Yuxuan Du, Tao Huang, Shan You, Min-Hsiu Hsieh, and          arXiv:2006.15438 [quant-ph]
+     Dacheng Tao, Quantum circuit architecture search: error mit-     [139] Jian Pan, Yudong Cao, Xiwei Yao, Zhaokai Li, Chenyong Ju,
+       igation and trainability enhancement for variational quantum         Hongwei Chen, Xinhua Peng, S. Kais, and Jiangfeng Du, Ex-
+       solvers, arXiv:2010.10217 [quant-ph]                                 perimental realization of quantum algorithm for solving linear
+[121] Shi-Xin Zhang,  Chang-Yu  Hsieh,  Shengyu Zhang,  and          systems of equations, Phys. Rev. A 89, 022313 (2014).
+     Hong Yao,  Diﬀerentiable Quantum  Architecture  Search,     [140] Tao Xin, Shijie Wei, Jianlian Cui, Junxiang Xiao,  I. Arra-
+      arXiv:2010.08561 [quant-ph]                                              zola, L. Lamata, Xiangyu Kong, Dawei Lu, E. Solano, and
+[122] Kaining Zhang, Min-Hsiu Hsieh, Liu Liu, and Dacheng          Guilu Long, Quantum algorithm for solving linear diﬀerential
+      Tao, Toward  Trainability  of Quantum Neural Networks,           equations: Theory and experiment, Phys. Rev. A 101, 032307
+      arXiv:2007.11921 [quant-ph]                                          (2020).
+[123] D. Zhu, N. M. Linke, M. Benedetti, K. A. Landsman, N. H.     [141] M. Lubasch, J. Joo, P. Moinier, M. Kiﬀner, and D. Jaksch,
+     Nguyen, C. H. Alderete, A. Perdomo-Ortiz, N. Korda, A. Gar-            Variational quantum algorithms for nonlinear problems, Phys.
+       foot, C. Brecque, L. Egan, O. Perdomo, and C. Monroe, Train-          Rev. A 101, 010301(R) (2020).
+      ing of quantum circuits on a hybrid quantum computer, Sci-     [142] F. Gaitan, Finding ﬂows of a Navier–Stokes ﬂuid through
+      ence Advances 5, eaaw9918 (2019).                              quantum computing, npj Quantum Inf. 6, 61 (2020).
+[124] He-Liang Huang, Yuxuan Du, Ming Gong, Youwei Zhao,     [143] J. Sirignano and K. Spiliopoulos, DGM: A deep learning algo-
+      Yulin Wu, Chaoyue Wang, Shaowei Li, Futian Liang, Jin Lin,           rithm for solving partial diﬀerential equations, J. Comp. Phys.
+     Yu Xu, Rui Yang, Tongliang Liu, Min-Hsiu Hsieh, Hui Deng,           375, 1339 (2018).
+     Hao Rong, Cheng-Zhi Peng, Chao-Yang Lu, Yu-Ao Chen,     [144]  I. E. Lagaris, A. Likas, and D. I. Fotiadis, Artiﬁcial neural net-
+     Dacheng Tao, Xiaobo Zhu, and Jian-Wei Pan, Experimental         works for solving ordinary and partial diﬀerential equations,
+     Quantum Generative Adversarial Networks for Image Gener-         IEEE Trans. Neural. Netw. Learn. Syst. 9, 987 (1998).
+       ation, arXiv:2010.06201 [quant-ph]                             [145] M. Raissi, P. Perdikaris, and G. E. Karniadakis, Physics in-
+[125] Ying Li and S. C. Benjamin, Eﬃcient Variational Quantum          formed neural networks: A deep learning framework for solv-
+      Simulator Incorporating Active Error Minimization, Phys.           ing forward and inverse problems involving nonlinear partial
+      Rev. X 7, 021050 (2017).                                                diﬀerential equations, J. Comput. Phys.378, 686 (2019).
+[126] K. Temme, S. Bravyi, and J. M. Gambetta, Error Mitiga-     [146] M. Raissi, A. Yazdani, and G. E. Karniadakis, Hidden ﬂuid
+       tion for Short-Depth Quantum Circuits, Phys. Rev. Lett. 119,          mechanics: Learning velocity and pressure ﬁelds from ﬂow
+     180509 (2017).                                                            visualizations, Science 367, 1026 (2020).
+[127] S. Endo, S. C. Benjamin, and Ying Li, Practical Quantum Er-     [147] Zongyi Li, N. Kovachki, K. Azizzadenesheli, Burigede Liu,
+       ror Mitigation for Near-Future Applications, Phys. Rev. X 8,         K. Bhattacharya, A. Stuart, and A. Anandkumar, Fourier
+     031027 (2018).                                                   Neural Operator for Parametric Partial Diﬀerential Equations,
+[128] X. Bonet-Monroig, R. Sagastizabal, M. Singh, and T. O’Brien,          arXiv:2010.08895 [cs.LG]
+      Low-cost error mitigation by symmetry veriﬁcation, Phys.     [148] C. Rackauckas, Yingbo Ma,  J. Martensen, C. Warner, K.
+=== PAGE 22 ===
+                                                                                                    22
+
+
+      Zubov, R. Supekar, D. Skinner, A. Ramadhan, and A. Edel-     [163] D. W. Berry, A. M. Childs, R. Cleve, R. Kothari, and R. D.
+     man, Universal Diﬀerential Equations for Scientiﬁc Machine        Somma, Simulating Hamiltonian Dynamics with a Truncated
+      Learning, arXiv:2001.04385v3 [cs.LG]                                Taylor Series, Phys. Rev. Lett. 114, 090502 (2015).
+[149] C. Rackauckas, M. Innes, Yingbo Ma,  J. Bettencourt, L.     [164] K. Nakaji and N. Yamamoto, Expressibility of the alternat-
+      White, and V. Dixit, Diﬀeqﬂux.jl - A julia library for neural           ing layered ansatz for quantum computation, Quantum 5, 434
+       diﬀerential equations, arXiv:1902.02376v1 [cs.LG]                     (2021).
+[150] M. Bachmayr, R. Schneider, and A. Uschmajew, Tensor Net-     [165] D. Chivilikhin, A. Samarin, V. Ulyantsev,  I. Iorsh, A. R.
+     works and Hierarchical Tensors for the Solution of High-          Oganov, and O. Kyriienko, MoG-VQE: Multiobjective genetic
+      Dimensional Partial Diﬀerential Equations, Foundations of            variational quantum eigensolver, arXiv:2007.04424 [quant-
+      Computational Mathematics 16, 1423 (2016).                         ph]
+[151] J. J. Garcia-Ripoll, Quantum-inspired algorithms for multi-     [166] D. P. Kingma and J. Ba, Adam: A method for stochastic opti-
+       variate analysis: from interpolation to partial diﬀerential equa-           mization, in Proceedings of the 3rd International Conference
+       tions, Quantum 5, 431 (2021).                                   on Learning Representations (ICLR) (2015); arXiv:1412.6980
+[152] A  patent  application  for  the method  described  in  this          [cs.LG]
+      manuscript has been submitted by Qu & Co BV with OK, AP     [167] A. Neumaier, Solving Ill-Conditioned and Singular Linear
+     and VE as inventors.                                               Systems: A Tutorial on Regularization, SIAM Review 40, 3
+[153] M. Schuld and N. Killoran, Quantum Machine Learning in           (1998).
+      Feature Hilbert Spaces, Phys. Rev. Lett. 122, 040504 (2019).     [168] F. Girosi, M. Jones, and T. Poggio, Regularization theory
+[154] S. Lloyd, M. Schuld, A. Ijaz, J. Izaac, and N. Killoran, Quan-          and neural networks architectures, Neural computation 7, 219
+     tum embeddings for machine learning, arXiv:2001.03622           (1995).
+      [quant-ph]                                                    [169] Xiu-Zhe Luo, Jin-Guo Liu, Pan Zhang, Lei Wang, Yao.jl: Ex-
+[155] M. Schuld, R. Sweke, and J. J. Meyer, The eﬀect of data en-            tensible, Eﬃcient Framework for Quantum Algorithm Design,
+      coding on the expressive power of variational quantum ma-         Quantum 4, 341 (2020).
+      chine learning models, Phys. Rev. A 103, 032430 (2021).         [170] Jin-Guo Liu, Yi-Hong Zhang, Yuan Wan, and Lei Wang, Vari-
+[156] A. Mari, T. R. Bromley, and N. Killoran, Estimating the gradi-            ational quantum eigensolver with fewer qubits, Phys. Rev.
+      ent and higher-order derivatives on quantum hardware, Phys.           Res. 1, 023025 (2019).
+      Rev. A 103, 012405 (2021).                                    [171] T. A. Bespalova and O. Kyriienko, Hamiltonian operator ap-
+[157] J. G. Vidal and D. O. Theis, Input redundancy for parameter-          proximation for energy measurement and ground state prepa-
+      ized quantum circuits, Front. Phys. 8, 297 (2020).                          ration, arXiv:2009.03351 [quant-ph]
+[158] K. Mitarai and K. Fujii, Methodology for replacing indirect     [172] J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush, and
+     measurements with direct measurements, Phys. Rev. Res. 1,         H. Neven, Barren plateaus in quantum neural network training
+     013006 (2019).                                                        landscapes, Nature Commun. 9, 4812 (2018).
+[159] O. Kyriienko, Quantum inverse iteration algorithm for pro-     [173] Takahiro Goto, Quoc Hoan Tran, and Kohei Nakajima, Uni-
+     grammable quantum simulators, npj Quantum Inf. 6, 7 (2020).            versal Approximation Property of Quantum Feature Map,
+[160] M. Abramowitz and I. A. Stegun, Handbook of Mathemati-          arXiv:2009.00298 [quant-ph]
+      cal Functions with Formulas, Graphs, and Mathematical Ta-     [174] Samuel Yen-Chi Chen, Tzu-Chieh Wei, Chao Zhang, Hai-
+      bles (10th edition, National Bureau of Standards, Washington,         wang Yu, and Shinjae Yoo, Quantum Convolutional Neu-
+      D.C., USA, 1972).                                                              ral Networks  for High  Energy  Physics  Data  Analysis,
+[161] E. Ya. Remez and V. T. Gavrilyuk, Computer development          arXiv:2012.12177 [cs.LG]
+      of certain approaches to the approximate construction of so-     [175] Arthur Pesah, M. Cerezo, Samson Wang,  Tyler Volkoﬀ,
+       lutions of Chebyshev problems nonlinearly depending on pa-         Andrew T. Sornborger, Patrick  J. Coles, Absence of Bar-
+      rameters, Ukr. Mat. Zh. 12, 324 (1960).                                ren Plateaus in Quantum Convolutional Neural Networks,
+[162] M. J. D. Powell, Approximation theory and methods (Cam-          arXiv:2011.02966 [quant-ph]
+      bridge University Press, New York, USA, 1981).
