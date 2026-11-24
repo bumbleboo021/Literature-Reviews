@@ -12,9 +12,9 @@ This example shows how `DifferentiableQuantumCircuit` (`dqc/circuit.py`) wraps t
   1. **PyTorch autograd (`eval_with_derivative`)** — fast on a simulator, and uses `create_graph=True` so we can subsequently compute $\nabla_\theta \mathcal{L}[df/dx, f, x]$ for Adam.
   2. **Hardware parameter-shift rule (`df_dx_parameter_shift`)** — shifts each feature-map rotation angle $\phi_j(x) \to \phi_j(x) \pm \frac{\pi}{2}$ one qubit at a time and applies the chain rule:
 
-     ```math
-     \frac{df}{dx} = \frac{1}{2} \sum_{j=1}^{N} \frac{d\phi_j(x)}{dx} \Big(\langle \hat{C} \rangle_{\phi_j + \pi/2} - \langle \hat{C} \rangle_{\phi_j - \pi/2}\Big)
-     ```
+$$
+\frac{df}{dx} = \frac{1}{2} \sum_{j=1}^{N} \frac{d\phi_j(x)}{dx} \Big(\langle \hat{C} \rangle_{\phi_j + \pi/2} - \langle \hat{C} \rangle_{\phi_j - \pi/2}\Big)
+$$
 
 ## How to Run
 
