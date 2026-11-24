@@ -1,7 +1,0 @@
-{
-  "problem": "nozzle", "n_qubits": 6, "depth": 6, "axes": "ZXZ",
-  "feature_map": "cheb", "trainable_readout": false, "encoding": "parallel",
-  "boundary": "floating", "optimizer": "adam", "steps": 200,
-  "learning_rate": 0.01, "points": 20, "stop": 0.4,
-  "nozzle_residual": "conservation", "seed": 7
-}

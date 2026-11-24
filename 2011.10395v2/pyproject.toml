@@ -3,22 +3,18 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "dqc-paper"
+name = "dqc-ode"
 version = "0.1.0"
-description = "CPU implementation of differentiable quantum circuit DE solvers (arXiv:2011.10395v2)"
+description = "From-scratch implementation of Kyriienko, Paine & Elfving (arXiv:2011.10395v2) — Solving nonlinear differential equations with differentiable quantum circuits"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24", "scipy>=1.10", "matplotlib>=3.7"]
-
-[project.optional-dependencies]
-dev = ["pytest>=7"]
-
-[project.scripts]
-dqc-solve = "dqc.cli:main"
+dependencies = [
+    "pennylane>=0.38",
+    "torch>=2.2",
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "matplotlib>=3.8",
+    "pytest>=8.0",
+]
 
 [tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src"]
-
+include = ["dqc*", "problems*"]

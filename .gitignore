@@ -1,4 +1,18 @@
-.idea
-.venv
-.cache
-.idea
+# Virtual environments & caches
+.venv/
+.cache/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Generated experiment outputs
+results/
+*.png
+*.pt
+*.npz

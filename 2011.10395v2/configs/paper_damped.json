@@ -1,7 +1,0 @@
-{
-  "problem": "damped", "n_qubits": 6, "depth": 5, "axes": "ZXZ",
-  "feature_map": "chebt", "trainable_readout": false,
-  "boundary": "floating", "optimizer": "adam", "steps": 250,
-  "learning_rate": 0.01, "points": 20, "frequency": 8.0, "damping": 0.1,
-  "damped_residual": "original", "seed": 7
-}
