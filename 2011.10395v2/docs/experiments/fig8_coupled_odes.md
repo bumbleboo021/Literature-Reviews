@@ -6,8 +6,12 @@
 
 ## Equations
 
-$$\frac{du_1}{dx} - \lambda_1 u_2 - \lambda_2 u_1 = 0, \qquad u_1(0) = 0.5$$
-$$\frac{du_2}{dx} + \lambda_2 u_2 + \lambda_1 u_1 = 0, \qquad u_2(0) = 0.0$$
+$$
+\begin{aligned}
+\frac{du_1}{dx} - \lambda_1 u_2 - \lambda_2 u_1 &= 0, \qquad u_1(0) = 0.5 \\
+\frac{du_2}{dx} + \lambda_2 u_2 + \lambda_1 u_1 &= 0, \qquad u_2(0) = 0.0
+\end{aligned}
+$$
 
 with $\lambda_1 = 5$, $\lambda_2 = 3$ ($\omega = \sqrt{\lambda_1^2 - \lambda_2^2} = 4$).
 

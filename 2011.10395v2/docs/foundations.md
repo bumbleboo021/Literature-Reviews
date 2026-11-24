@@ -66,8 +66,12 @@ Measuring a Hermitian observable $\hat{C}$ projects the $2^N$-dimensional quantu
 A central contribution of `2011.10395v2` is avoiding noisy finite-difference approximations of $df/dx$.
 
 - **On quantum hardware (Parameter-Shift Rule, Eq. 2 / Fig. 3b)**:
-  $$\frac{df}{dx} = \frac{1}{2} \sum_{j=1}^{N} \frac{d\varphi_j(x)}{dx} \Big(\langle \hat{C} \rangle_{\varphi_j + \pi/2} - \langle \hat{C} \rangle_{\varphi_j - \pi/2}\Big)$$
-  *(Note: Eq. 9 on p. 6 of the paper has a printed typo with $\frac{1}{4}$; Eq. 2 on p. 3 has the true factor $\frac{1}{2}$, verified to $8.88\times 10^{-15}$ in `tests/test_derivatives.py`!)*
+
+  $$
+  \frac{df}{dx} = \frac{1}{2} \sum_{j=1}^{N} \frac{d\varphi_j(x)}{dx} \Big(\langle \hat{C} \rangle_{\varphi_j + \pi/2} - \langle \hat{C} \rangle_{\varphi_j - \pi/2}\Big)
+  $$
+
+  Note: Eq. 9 on p. 6 of the paper has a printed typo with $\frac{1}{4}$; Eq. 2 on p. 3 has the true factor $\frac{1}{2}$, verified to $8.88 \times 10^{-15}$ in `tests/test_derivatives.py`.
 - **On a classical simulator (`default.qubit` + PyTorch `backprop`)**:
   We compute $df/dx$ via `torch.autograd.grad(f.sum(), x, create_graph=True)[0]`, which is algebraically identical to the parameter-shift rule (to machine precision) and much faster.
 - **Why `create_graph=True` is mandatory**: During Adam training, our loss $\mathcal{L}[df/dx, f, x]$ depends on $df/dx$, so `loss.backward()` must compute $\frac{\partial}{\partial \theta}\left(\frac{\partial f}{\partial x}\right)$ — a second-order mixed derivative. Without `create_graph=True`, gradients stop flowing through $df/dx$ into $\theta$.
