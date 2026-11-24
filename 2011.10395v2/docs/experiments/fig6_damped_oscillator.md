@@ -14,9 +14,9 @@ $$u(x) = e^{-\kappa \lambda x}\cos(\lambda x)$$
 
 > **Numerical note (pole-free form):** Because $\tan(\lambda x)$ has poles wherever $\cos(\lambda x) = 0$, evaluating the raw residual on an equidistant grid creates huge MSE spikes ($\sim 10^3$–$10^5$) that pin the trial function to $0$. Multiplying Eq. (30) by $\cos(\lambda x)$ gives the algebraically equivalent, pole-free residual:
 >
-> $$
+> ```math
 > \cos(\lambda x)\frac{du}{dx} + \lambda u\big(\kappa\cos(\lambda x) + \sin(\lambda x)\big) = 0
-> $$
+> ```
 >
 > which has the exact same solution and matches the paper's initial loss scale ($10^1$–$10^2$) and convergence in Fig. 6.
 
