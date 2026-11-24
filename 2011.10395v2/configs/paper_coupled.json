@@ -1,0 +1,6 @@
+{
+  "problem": "coupled", "n_qubits": 6, "depth": 5, "axes": "ZXZ",
+  "feature_map": "chebt", "trainable_readout": false, "encoding": "parallel",
+  "boundary": "floating", "optimizer": "adam", "steps": 250,
+  "learning_rate": 0.02, "points": 20, "seed": 7
+}

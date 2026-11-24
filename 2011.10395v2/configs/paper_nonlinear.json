@@ -1,0 +1,6 @@
+{
+  "problem": "nonlinear", "n_qubits": 6, "depth": 5, "axes": "ZXZ",
+  "feature_map": "chebt", "trainable_readout": false,
+  "boundary": "floating", "optimizer": "adam", "steps": 200,
+  "learning_rate": 0.01, "points": 100, "seed": 11
+}

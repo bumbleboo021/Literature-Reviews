@@ -1,0 +1,6 @@
+{
+  "problem": "decay", "n_qubits": 3, "depth": 2, "axes": "YZ",
+  "feature_map": "chebt", "trainable_readout": true,
+  "boundary": "floating", "optimizer": "least_squares", "max_nfev": 180,
+  "points": 31, "seed": 7
+}
