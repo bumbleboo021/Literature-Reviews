@@ -11,8 +11,6 @@ __pycache__/
 .idea/
 .vscode/
 
-# Generated experiment outputs
-results/
-*.png
+# Generated experiment checkpoints (keep reproduced PNG figures tracked)
 *.pt
 *.npz

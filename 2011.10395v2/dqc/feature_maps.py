@@ -13,7 +13,9 @@ gates onto the provided wires.
 from __future__ import annotations
 
 from collections.abc import Sequence
+import numpy as np
 import pennylane as qml
+from scipy.linalg import expm
 import torch
 
 
@@ -68,3 +70,34 @@ def apply_feature_map(name: str, x: torch.Tensor, wires: Sequence[int]) -> None:
         valid = ", ".join(sorted(FEATURE_MAPS))
         raise ValueError(f"Unknown feature map '{name}'. Choose from: {valid}")
     FEATURE_MAPS[name](x, wires)
+
+
+def build_ising_evolution_unitary(
+    n_qubits: int,
+    tau: float = 2.0,
+    seed: int = 42,
+) -> torch.Tensor:
+    """Build exact unitary exp(-i * H * tau) for the evolution-enhanced feature map.
+
+    Matches Section III.A (Fig. 3c) and Section IV (p. 13):
+        H = -J * sum_j Z_j Z_{j+1} + h * sum_j X_j
+    with couplings J, h drawn uniformly from (0, 1].
+    """
+    rng = np.random.default_rng(seed)
+    j_coupling = float(rng.uniform(0.0, 1.0))
+    h_field = float(rng.uniform(0.0, 1.0))
+
+    wires = list(range(n_qubits))
+    coeffs: list[float] = []
+    ops: list[qml.operation.Operator] = []
+    for i in range(n_qubits - 1):
+        coeffs.append(-j_coupling)
+        ops.append(qml.PauliZ(wires[i]) @ qml.PauliZ(wires[i + 1]))
+    for i in range(n_qubits):
+        coeffs.append(h_field)
+        ops.append(qml.PauliX(wires[i]))
+
+    hamiltonian = qml.Hamiltonian(coeffs, ops)
+    h_mat = qml.matrix(hamiltonian, wire_order=wires)
+    u_mat = expm(-1j * h_mat * tau)
+    return torch.tensor(u_mat, dtype=torch.complex128)
