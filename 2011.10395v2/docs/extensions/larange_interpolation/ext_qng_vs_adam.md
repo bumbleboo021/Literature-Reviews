@@ -1,6 +1,6 @@
 # Extension Benchmark: 6-Way Optimizer Comparison (Adam, QNG, L-BFGS & Hybrids)
 
-**Module:** [`dqc/extensions/qng_solver.py`](../../../dqc/extensions/qng_solver.py) (`QNGSolver`, `LBFGSSolver`)  
+**Module:** [`dqc/extensions/lagrange_interpolation/qng_solver.py`](../../../dqc/extensions/lagrange_interpolation/qng_solver.py) (`QNGSolver`, `LBFGSSolver`)  
 **Tests:** [`tests/test_qng.py`](../../../tests/test_qng.py) (verifies Eq. 27 / Fig. 2 of the Lagrange GPSR paper to `1e-10`)  
 **Script:** [`experiments/ext_qng_vs_adam.py`](../../../experiments/ext_qng_vs_adam.py)  
 **Figure:** [`results/ext_qng_vs_adam.png`](../../../results/ext_qng_vs_adam.png)

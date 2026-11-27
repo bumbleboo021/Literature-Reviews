@@ -7,8 +7,8 @@ import torch
 
 from dqc.boundary import BoundaryHandler
 from dqc.circuit import DifferentiableQuantumCircuit
-from dqc.extensions.lagrange_gpsr import derive_lagrange_shift_rule
-from dqc.extensions.qng_solver import (
+from dqc.extensions.lagrange_interpolation.lagrange_gpsr import derive_lagrange_shift_rule
+from dqc.extensions.lagrange_interpolation.qng_solver import (
     QNGSolver,
     fubini_study_lagrange,
     fubini_study_statevector,

@@ -1,7 +1,7 @@
 # Extension Benchmark: Baseline HEA vs. Controlled-Rotation (Lagrange GPSR) & 2nd-Order ODE
 
-**Modules:** [`dqc/extensions/lagrange_gpsr.py`](../../dqc/extensions/lagrange_gpsr.py), [`dqc/extensions/cr_ansatz.py`](../../dqc/extensions/cr_ansatz.py), [`problems/second_order_ode.py`](../../problems/second_order_ode.py)  
-**Script:** [`experiments/ext_lagrange_comparison.py`](../../experiments/ext_lagrange_comparison.py)
+**Modules:** [`dqc/extensions/lagrange_interpolation/lagrange_gpsr.py`](../../../dqc/extensions/lagrange_interpolation/lagrange_gpsr.py), [`dqc/extensions/lagrange_interpolation/cr_ansatz.py`](../../../dqc/extensions/lagrange_interpolation/cr_ansatz.py), [`problems/second_order_ode.py`](../../../problems/second_order_ode.py)  
+**Script:** [`experiments/ext_lagrange_comparison.py`](../../../experiments/ext_lagrange_comparison.py)
 
 ## What This Extension Tests
 

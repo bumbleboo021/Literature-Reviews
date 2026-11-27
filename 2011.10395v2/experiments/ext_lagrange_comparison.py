@@ -18,7 +18,7 @@ import torch
 
 from dqc.boundary import BoundaryHandler
 from dqc.circuit import DifferentiableQuantumCircuit
-from dqc.extensions.cr_ansatz import ControlledRotationDQC
+from dqc.extensions.lagrange_interpolation.cr_ansatz import ControlledRotationDQC
 from dqc.losses import solution_quality
 from dqc.solver import DQCSolver
 from problems.damped_oscillator import DampedOscillatorProblem

@@ -24,7 +24,7 @@ import torch
 from dqc.ansatz import hardware_efficient_ansatz
 from dqc.boundary import BoundaryHandler
 from dqc.circuit import DifferentiableQuantumCircuit
-from dqc.extensions.lagrange_gpsr import (
+from dqc.extensions.lagrange_interpolation.lagrange_gpsr import (
     ShiftRule,
     apply_second_order_shift_rule,
 )

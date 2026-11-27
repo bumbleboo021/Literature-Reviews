@@ -5,7 +5,7 @@ import numpy as np
 import pennylane as qml
 import pytest
 
-from dqc.extensions.lagrange_gpsr import (
+from dqc.extensions.lagrange_interpolation.lagrange_gpsr import (
     apply_second_order_shift_rule,
     apply_shift_rule,
     derive_lagrange_shift_rule,

@@ -29,9 +29,9 @@ $$
 ## 2. How It Improves Our `2011.10395v2` DQC Implementation
 
 1. **Ancilla-free differentiation of $x$-dependent Evolution-Enhanced / Fourier feature maps**: Replaces the SWAP-test / finite-difference workarounds noted on pp. 6 & 14 of `2011.10395v2` with exact shifted-circuit evaluations.
-2. **Richer variational ansatz gates (`dqc/extensions/cr_ansatz.py`)**: Enables parametrized controlled-rotations (`CRY`, `CRZ`, $n=3$ eigenvalues $\to$ 4-term rule) and native global rotation gates while keeping hardware-exact gradients.
-3. **2nd-order ODEs ($d^2f/dx^2$) & simulator-free hardware training (`dqc/extensions/lagrange_gpsr.py`)**: Eq. (24)–(25) gives exact mixed 2nd-order derivatives $\frac{\partial^2 f}{\partial \theta_l \partial x}$ and $\frac{d^2 f}{dx^2}$ on hardware.
-4. **Faster convergence via Quantum Natural Gradient (`dqc/extensions/qng_solver.py`)**: Using the Fubini–Study metric tensor $g_{ij}(\theta)$ (Eq. 26) preconditions gradients as $\theta \leftarrow \theta - \alpha g^{-1}\nabla_\theta \mathcal{L}$.
+2. **Richer variational ansatz gates (`dqc/extensions/lagrange_interpolation/cr_ansatz.py`)**: Enables parametrized controlled-rotations (`CRY`, `CRZ`, $n=3$ eigenvalues $\to$ 4-term rule) and native global rotation gates while keeping hardware-exact gradients.
+3. **2nd-order ODEs ($d^2f/dx^2$) & simulator-free hardware training (`dqc/extensions/lagrange_interpolation/lagrange_gpsr.py`)**: Eq. (24)–(25) gives exact mixed 2nd-order derivatives $\frac{\partial^2 f}{\partial \theta_l \partial x}$ and $\frac{d^2 f}{dx^2}$ on hardware.
+4. **Faster convergence via Quantum Natural Gradient (`dqc/extensions/lagrange_interpolation/qng_solver.py`)**: Using the Fubini–Study metric tensor $g_{ij}(\theta)$ (Eq. 26) preconditions gradients as $\theta \leftarrow \theta - \alpha g^{-1}\nabla_\theta \mathcal{L}$.
 
 ---
 

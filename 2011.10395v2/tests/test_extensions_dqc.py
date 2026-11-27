@@ -2,7 +2,7 @@
 
 import torch
 
-from dqc.extensions.cr_ansatz import ControlledRotationDQC
+from dqc.extensions.lagrange_interpolation.cr_ansatz import ControlledRotationDQC
 from problems.second_order_ode import SecondOrderHarmonicProblem
 
 

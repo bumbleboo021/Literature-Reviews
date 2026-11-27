@@ -21,7 +21,7 @@ import torch
 
 from dqc.boundary import BoundaryHandler
 from dqc.circuit import DifferentiableQuantumCircuit
-from dqc.extensions.qng_solver import LBFGSSolver, QNGSolver
+from dqc.extensions.lagrange_interpolation.qng_solver import LBFGSSolver, QNGSolver
 from dqc.solver import DQCSolver
 from problems.damped_oscillator import DampedOscillatorProblem
 
