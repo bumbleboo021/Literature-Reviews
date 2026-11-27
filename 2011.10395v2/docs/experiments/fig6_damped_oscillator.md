@@ -39,4 +39,21 @@ python 2011.10395v2/experiments/reproduce_fig6.py
 
 - For **$\lambda = 8$**: Both `Cheb` and `ChebT` converge closely to the exact damped cosine, while `Prod` plateaus early because its basis is too weak.
 - For **$\lambda = 20$** (rapidly oscillating): Both `Prod` and sparse `Cheb` struggle to fit the oscillations, while **`ChebT`** (Chebyshev Tower) still captures the solution accurately — demonstrating why feature-map expressivity is crucial.
-- Output plot is saved to `2011.10395v2/results/fig6_feature_maps.png`.
+- Output plot is saved to [`results/fig6_feature_maps.png`](../../results/fig6_feature_maps.png).
+
+---
+
+## Reproduced Results & Conclusions
+
+| Case | Feature Map | Final $L_F$ | Final $L_Q$ (MSE vs. Exact) | Outcome |
+| :--- | :--- | :---: | :---: | :--- |
+| $\lambda = 8$ | `product` (Prod) | `1.45e+00` | `9.85e-02` | Plateaus early — basis too weak |
+| $\lambda = 8$ | `chebyshev` (Cheb) | `2.96e-02` | **`3.03e-04`** | Converges accurately |
+| $\lambda = 8$ | `chebyshev_tower` (ChebT) | `3.81e-03` | `3.50e-02` | Slower early convergence (as noted on p. 13) |
+| $\lambda = 20$ | `product` (Prod) | `1.54e+01` | `1.77e-01` | Fails to oscillate |
+| $\lambda = 20$ | `chebyshev` (Cheb) | `7.82e+00` | `1.16e-01` | Fails to oscillate |
+| $\lambda = 20$ | `chebyshev_tower` (ChebT) | **`6.51e-03`** | **`8.89e-04`** | **~200x lower $L_Q$; captures every oscillation** |
+
+**What Fig. 6 brings to us:**
+- Proves that **feature-map expressivity is the primary bottleneck** for oscillatory ODEs — swapping `product`/`chebyshev` for `chebyshev_tower` improves accuracy by ~200x at $\lambda = 20$ with the exact same ansatz depth ($d = 5$).
+- Practical numerical lesson: clearing algebraic poles ($\tan(\lambda x) \to$ multiply by $\cos(\lambda x)$) is critical for stable MSE residuals.
